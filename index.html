@@ -1,0 +1,2956 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0b0c11">
+<title>MAZE — Tactical Protocol & Challenge Modes</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=JetBrains+Mono:wght@600;700&display=swap" rel="stylesheet">
+
+<style>
+/* ================= TEMA & CORES ================= */
+:root {
+  --yellow: #ffb800;
+  --yellow-glow: rgba(255, 184, 0, 0.4);
+  --bg-deep: #0b0c11;
+  --bg-panel: #12141d;
+  --bg-card: #1b1e2c;
+  --border-color: #262b3d;
+  --maze-wall: #647098;
+  --maze-bg: #0f1118;
+  --text-main: #f0f2ff;
+  --text-muted: #8287a5;
+  --trail-active: #ffb800;
+  --trail-dead: #ef4444;
+  --laser-gate: #06b6d4;
+  --green: #10b981;
+  --font-main: 'Barlow Condensed', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+body.theme-light {
+  --bg-deep: #f0f2f7;
+  --bg-panel: #ffffff;
+  --bg-card: #f4f6fb;
+  --border-color: #cbd2e3;
+  --maze-wall: #252c42;
+  --maze-bg: #ffffff;
+  --text-main: #111422;
+  --text-muted: #646b82;
+  --trail-active: #d97706;
+  --trail-dead: #dc2626;
+  --laser-gate: #0284c7;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+body {
+  font-family: var(--font-main);
+  background: var(--bg-deep);
+  color: var(--text-main);
+  height: 100dvh;
+  width: 100vw;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: background 0.25s ease, color 0.25s ease;
+}
+
+.screen {
+  display: none;
+  height: 100dvh;
+  width: 100vw;
+  flex-direction: column;
+}
+
+.screen.active { display: flex; }
+
+/* ================= 1. TELA INICIAL ================= */
+.home-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 16px 16px 20px;
+  max-width: 650px;
+  margin: 0 auto;
+  width: 100%;
+  overflow-y: auto;
+}
+
+.home-badge {
+  color: var(--yellow);
+  font-size: 13px;
+  letter-spacing: .2em;
+  font-weight: 700;
+}
+
+.home-container h1 {
+  font-size: clamp(44px, 11vw, 76px);
+  font-weight: 700;
+  line-height: .86;
+  margin: 6px 0 10px;
+  letter-spacing: -.02em;
+}
+
+.home-container h1 span { color: var(--yellow); }
+
+.home-desc {
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.mode-grid-select {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin: 12px 0 8px;
+}
+
+.mode-tab {
+  background: var(--bg-panel);
+  border: 1.5px solid var(--border-color);
+  color: var(--text-muted);
+  padding: 8px 4px;
+  border-radius: 6px;
+  text-align: center;
+  cursor: pointer;
+  transition: all .15s;
+}
+
+.mode-tab.active {
+  background: var(--yellow);
+  border-color: var(--yellow);
+  color: #000;
+  font-weight: 700;
+}
+
+.mode-tab .m-name { font-size: 15px; font-weight: 700; display: block; line-height: 1.1; }
+.mode-tab .m-sub { font-size: 9px; font-family: var(--font-mono); opacity: .85; }
+
+.mode-explanation {
+  background: var(--bg-panel);
+  border-left: 3px solid var(--yellow);
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.35;
+  border-radius: 0 4px 4px 0;
+  margin-bottom: 10px;
+}
+
+.map-section-title {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  margin-bottom: 6px;
+  letter-spacing: .08em;
+  display: flex;
+  justify-content: space-between;
+}
+
+.map-grid-select {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 7px;
+  max-height: 200px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.map-btn {
+  background: var(--bg-panel);
+  border: 1.5px solid var(--border-color);
+  color: var(--text-main);
+  padding: 8px 4px;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: center;
+  transition: all .15s;
+}
+
+.map-btn.selected {
+  background: var(--yellow);
+  border-color: var(--yellow);
+  color: #000;
+  font-weight: 700;
+}
+
+.map-btn .m-title { font-size: 18px; font-weight: 700; display: block; line-height: 1; }
+.map-btn .m-dim { font-family: var(--font-mono); font-size: 9px; opacity: .8; margin-top: 2px; display: block; }
+
+.btn-start-action {
+  background: var(--yellow);
+  color: #000;
+  border: 0;
+  width: 100%;
+  padding: 15px;
+  font-size: 18px;
+  font-weight: 700;
+  font-family: var(--font-main);
+  letter-spacing: .08em;
+  border-radius: 6px;
+  cursor: pointer;
+  box-shadow: 0 4px 18px var(--yellow-glow);
+  margin-top: 10px;
+}
+
+/* ================= 2. CABEÇALHO COMPACTO ================= */
+.slim-header {
+  height: 40px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+  gap: 8px;
+  z-index: 10;
+  flex-shrink: 0;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-burger {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  width: 32px;
+  height: 30px;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.btn-burger span {
+  width: 16px;
+  height: 2px;
+  background: var(--text-main);
+  border-radius: 2px;
+}
+
+.header-info-tag {
+  display: flex;
+  flex-direction: column;
+}
+
+.header-map-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--yellow);
+  line-height: 1;
+}
+
+.header-mode-tag {
+  font-size: 8px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  letter-spacing: .08em;
+}
+
+.hud-cluster {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.hud-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.hud-item span {
+  color: var(--text-main);
+  font-weight: 700;
+  font-size: 13px;
+}
+
+/* ================= 3. ÁREA DO LABIRINTO ================= */
+.maze-stage {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+}
+
+#mazeCanvas {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 6px;
+  box-shadow: 0 4px 22px rgba(0, 0, 0, 0.4);
+  border: 2px solid var(--border-color);
+  background: var(--maze-bg);
+}
+
+.danger-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(239, 68, 68, 0.4);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .12s ease;
+  z-index: 20;
+}
+
+.danger-overlay.flash { opacity: 1; }
+
+.toast {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translate(-50%, -8px);
+  background: rgba(18, 20, 29, 0.94);
+  border: 1px solid #ef4444;
+  border-left: 4px solid #ef4444;
+  color: var(--text-main);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 6px 12px;
+  border-radius: 4px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .2s ease, transform .2s ease;
+  z-index: 30;
+  white-space: nowrap;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+/* ================= 4. BARRA INFERIOR MINIMALISTA ================= */
+.floating-bottom-bar {
+  background: var(--bg-panel);
+  border-top: 1px solid var(--border-color);
+  padding: 6px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.bottom-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tool-action-btn {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--font-main);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+}
+
+.tool-action-btn:active {
+  background: var(--yellow);
+  color: #000;
+}
+
+.tool-action-btn.hint {
+  color: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.35);
+}
+
+.swipe-tip {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+/* ================= 5. D-PAD FLUTUANTE (OPCIONAL) ================= */
+.floating-dpad-container {
+  display: none;
+  position: absolute;
+  bottom: 58px;
+  right: 12px;
+  background: rgba(18, 20, 29, 0.92);
+  backdrop-filter: blur(6px);
+  border: 1.5px solid var(--border-color);
+  border-radius: 8px;
+  padding: 6px;
+  z-index: 50;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+}
+
+.floating-dpad-container.active {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.dpad-row { display: flex; gap: 4px; }
+
+.dbtn {
+  width: 48px;
+  height: 40px;
+  background: var(--bg-card);
+  border: 1.5px solid var(--border-color);
+  color: var(--text-main);
+  font-size: 18px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.dbtn:active, .dbtn.pressed {
+  background: var(--yellow) !important;
+  color: #000 !important;
+  border-color: var(--yellow) !important;
+  transform: scale(0.92);
+}
+
+/* ================= 6. MENU HAMBÚRGUER LATERAL ================= */
+.drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+  z-index: 100;
+  display: none;
+  opacity: 0;
+  transition: opacity .2s ease;
+}
+
+.drawer-backdrop.active { display: block; opacity: 1; }
+
+.drawer-menu {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 300px;
+  max-width: 85vw;
+  background: var(--bg-panel);
+  border-right: 1px solid var(--border-color);
+  z-index: 101;
+  transform: translateX(-100%);
+  transition: transform .25s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  padding: 18px 14px;
+  gap: 12px;
+  overflow-y: auto;
+}
+
+.drawer-backdrop.active .drawer-menu { transform: translateX(0); }
+
+.drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 10px;
+}
+
+.drawer-title { font-size: 18px; font-weight: 700; letter-spacing: .08em; }
+.drawer-title span { color: var(--yellow); }
+
+.btn-close-drawer {
+  background: transparent;
+  border: 0;
+  color: var(--text-muted);
+  font-size: 22px;
+  cursor: pointer;
+}
+
+.menu-group { display: flex; flex-direction: column; gap: 7px; }
+
+.menu-label {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  letter-spacing: .12em;
+}
+
+.menu-option-btn {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  padding: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: var(--font-main);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+.menu-option-btn:active { border-color: var(--yellow); }
+
+/* ================= 7. MODAL DE VITÓRIA ================= */
+.victory-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  z-index: 110;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.victory-overlay.active { display: flex; }
+
+.victory-card {
+  background: var(--bg-panel);
+  border: 1.5px solid var(--border-color);
+  border-top: 4px solid var(--yellow);
+  width: 100%;
+  max-width: 320px;
+  padding: 24px 18px;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.victory-card h2 { font-size: 32px; font-weight: 700; }
+.victory-stars { font-size: 26px; color: var(--yellow); margin: 6px 0; }
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  margin: 16px 0;
+  padding: 10px;
+  font-family: var(--font-mono);
+}
+
+.stats-grid .num { font-size: 20px; font-weight: 700; color: var(--yellow); }
+.stats-grid .lbl { font-size: 10px; color: var(--text-muted); }
+
+.btn-proceed {
+  background: var(--yellow);
+  color: #000;
+  border: 0;
+  width: 100%;
+  padding: 14px;
+  font-size: 16px;
+  font-weight: 700;
+  font-family: var(--font-main);
+  border-radius: 4px;
+  cursor: pointer;
+}
+</style>
+</head>
+<body class="theme-dark">
+
+<!-- ================= TELA 1: INÍCIO ================= -->
+<div class="screen active" id="homeLayer">
+  <div class="home-container">
+    <div>
+      <div class="home-badge">TACTICAL PROTOCOL — 6 MODOS DE COMBATE</div>
+      <h1>FIND THE<br><span>EXIT.</span></h1>
+      <p class="home-desc">Deslize com o dedo pela tela para mover o cursor. Escolha um dos 6 modos de infiltração:</p>
+
+      <!-- SELETOR DOS 6 MODOS -->
+      <div class="mode-grid-select">
+        <div class="mode-tab active" data-mode="normal" onclick="selectGameMode('normal')">
+          <span class="m-name">NORMAL</span>
+          <span class="m-sub">TÁTICO</span>
+        </div>
+        <div class="mode-tab" data-mode="sentinel" onclick="selectGameMode('sentinel')">
+          <span class="m-name">SENTINELA</span>
+          <span class="m-sub">IA BFS & EXPLOSÃO</span>
+        </div>
+        <div class="mode-tab" data-mode="blackout" onclick="selectGameMode('blackout')">
+          <span class="m-name">BLACKOUT</span>
+          <span class="m-sub">NÉVOA & CHAVE</span>
+        </div>
+        <div class="mode-tab" data-mode="boss" onclick="selectGameMode('boss')">
+          <span class="m-name">CHEFÃO</span>
+          <span class="m-sub">STUN & ENERGIA</span>
+        </div>
+        <div class="mode-tab" data-mode="collapse" onclick="selectGameMode('collapse')">
+          <span class="m-name">COLAPSO</span>
+          <span class="m-sub">NÉVOA CALIBRADA</span>
+        </div>
+        <div class="mode-tab" data-mode="portal" onclick="selectGameMode('portal')">
+          <span class="m-name">PORTAL</span>
+          <span class="m-sub">ATALHOS CHAVE</span>
+        </div>
+      </div>
+
+      <div class="mode-explanation" id="modeExplanationText">
+        <strong>MODO NORMAL:</strong> Raciocínio tático puro. Trace a rota ideal para a saída com menor número de passos.
+      </div>
+
+      <div class="map-section-title">
+        <span id="levelListTitle">MAPAS: MODO NORMAL</span>
+        <span style="color:var(--yellow)">20 FASES + ∞ INFINITO</span>
+      </div>
+
+      <div class="map-grid-select" id="homeMapContainer">
+        <!-- 20 Mapas + Infinito -->
+      </div>
+    </div>
+
+    <div>
+      <button class="btn-start-action" id="btnStartGame">INICIAR MISSÃO →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= TELA 2: JOGO ================= -->
+<div class="screen" id="gameLayer">
+  
+  <header class="slim-header">
+    <div class="header-left">
+      <button class="btn-burger" id="btnOpenMenu" aria-label="Menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <div class="header-info-tag">
+        <span class="header-map-name" id="hudMapTitle">MAPA 01</span>
+        <span class="header-mode-tag" id="hudModeTag">NORMAL</span>
+      </div>
+    </div>
+
+    <div class="hud-cluster">
+      <div class="hud-item" id="hudSpecialItem" style="display:none;"><span id="hudSpecialIcon">🔑</span> <span id="hudSpecialStatus" style="color:#ef4444">0/1</span></div>
+      <div class="hud-item">⏱️ <span id="hudTimer">00:00</span></div>
+      <div class="hud-item">👟 <span id="hudMoves">0</span></div>
+      <div class="hud-item">⭐ <span id="hudStars" style="color:var(--yellow)">★★★</span></div>
+    </div>
+  </header>
+
+  <!-- ÁREA DO LABIRINTO (MAXIMIZADO) -->
+  <main class="maze-stage" id="stageArea">
+    <canvas id="mazeCanvas"></canvas>
+    <div class="danger-overlay" id="dangerOverlay"></div>
+    <div class="toast" id="toast"></div>
+  </main>
+
+  <!-- CONTROLES FLUTUANTES (D-PAD OPCIONAL ATIVÁVEL NO MENU) -->
+  <div class="floating-dpad-container" id="floatingDpad">
+    <button class="dbtn" data-dir="up">▲</button>
+    <div class="dpad-row">
+      <button class="dbtn" data-dir="left">◀</button>
+      <button class="dbtn" data-dir="down">▼</button>
+      <button class="dbtn" data-dir="right">▶</button>
+    </div>
+  </div>
+
+  <!-- BARRA INFERIOR MINIMALISTA -->
+  <footer class="floating-bottom-bar">
+    <div class="bottom-tools">
+      <button class="tool-action-btn" id="btnUndo">↶ Voltar</button>
+      <button class="tool-action-btn hint" id="btnHint">💡 Dica (segure 2 s)</button>
+    </div>
+    <div class="swipe-tip" id="bottomModeTip">Deslize para mover ➔</div>
+  </footer>
+
+</div>
+
+<!-- ================= MENU HAMBÚRGUER LATERAL ================= -->
+<div class="drawer-backdrop" id="menuBackdrop">
+  <aside class="drawer-menu">
+    <div class="drawer-header">
+      <div class="drawer-title">M<span>A</span>ZE.</div>
+      <button class="btn-close-drawer" id="btnCloseMenu">✕</button>
+    </div>
+
+    <div class="menu-group">
+      <button class="menu-option-btn" id="btnGoHome">
+        <span>🏠 Tela Inicial / Mapas</span>
+        <span>→</span>
+      </button>
+    </div>
+
+    <div class="menu-group" style="margin-top:6px;">
+      <div class="menu-label">MODO DE COMBATE</div>
+      <button class="menu-option-btn" onclick="switchModeAndReload('normal')">
+        <span>Normal</span>
+        <span id="mCheckNormal">✓</span>
+      </button>
+      <button class="menu-option-btn" onclick="switchModeAndReload('sentinel')">
+        <span>Sentinela (Drones & Lasers)</span>
+        <span id="mCheckSentinel"></span>
+      </button>
+      <button class="menu-option-btn" onclick="switchModeAndReload('blackout')">
+        <span>Blackout (Névoa & Chave)</span>
+        <span id="mCheckBlackout"></span>
+      </button>
+      <button class="menu-option-btn" onclick="switchModeAndReload('boss')">
+        <span>Chefão (Stun & Energia)</span>
+        <span id="mCheckBoss"></span>
+      </button>
+      <button class="menu-option-btn" onclick="switchModeAndReload('collapse')">
+        <span>Colapso (Névoa Calibrada)</span>
+        <span id="mCheckCollapse"></span>
+      </button>
+      <button class="menu-option-btn" onclick="switchModeAndReload('portal')">
+        <span>Dobra Quântica (Atalhos Chave)</span>
+        <span id="mCheckPortal"></span>
+      </button>
+    </div>
+
+    <div class="menu-group" style="margin-top:6px;">
+      <div class="menu-label">CONTROLE & TELA</div>
+      <button class="menu-option-btn" id="btnToggleDpad">
+        <span>🎮 Botões D-Pad</span>
+        <span id="lblDpadStatus" style="color:var(--text-muted)">Desativado</span>
+      </button>
+      <button class="menu-option-btn" id="btnToggleTheme">
+        <span>🌓 Tema</span>
+        <span id="lblThemeStatus">🌙 Escuro</span>
+      </button>
+      <button class="menu-option-btn" id="btnToggleAudio">
+        <span>🔊 Áudio</span>
+        <span id="lblAudioStatus">Ativado</span>
+      </button>
+    </div>
+
+    <div class="menu-group" style="margin-top:6px;">
+      <div class="menu-label">NAVEGAÇÃO</div>
+      <button class="menu-option-btn" id="btnRestartLevel">
+        <span>↻ Reiniciar Mapa</span>
+        <span>↺</span>
+      </button>
+      <button class="menu-option-btn" id="btnNextRandom">
+        <span>∞ Gerar Novo Infinito</span>
+        <span>🎲</span>
+      </button>
+    </div>
+  </aside>
+</div>
+
+<!-- ================= MODAL DE VITÓRIA ================= -->
+<div class="victory-overlay" id="victoryModal">
+  <div class="victory-card">
+    <div style="font-size:36px;">🏆</div>
+    <div class="victory-stars" id="vStars">★★★</div>
+    <h2>ESCAPE COMPLETO!</h2>
+    <p style="color:var(--text-muted);font-size:12px;margin-top:4px;" id="vSubtitle">Missão finalizada com sucesso.</p>
+
+    <div class="stats-grid">
+      <div>
+        <div class="num" id="vTime">00:00</div>
+        <div class="lbl">TEMPO</div>
+      </div>
+      <div>
+        <div class="num" id="vMoves">0</div>
+        <div class="lbl">PASSOS</div>
+      </div>
+    </div>
+
+    <button class="btn-proceed" id="btnNextMap">PRÓXIMO PROTOCOLO →</button>
+  </div>
+</div>
+
+<script>
+(() => {
+'use strict';
+
+/* ============================================================
+   1. 20 MAPAS PROGRESSIVOS + MODO INFINITO
+   ============================================================ */
+const MAP_CONFIGS = [
+  { id: 0,  title: "01", cols: 17, rows: 23, seed: 14591 },
+  { id: 1,  title: "02", cols: 19, rows: 25, seed: 82731 },
+  { id: 2,  title: "03", cols: 21, rows: 27, seed: 49217 },
+  { id: 3,  title: "04", cols: 21, rows: 29, seed: 93842 },
+  { id: 4,  title: "05", cols: 23, rows: 31, seed: 33119 },
+  { id: 5,  title: "06", cols: 23, rows: 31, seed: 74921 },
+  { id: 6,  title: "07", cols: 25, rows: 33, seed: 58210 },
+  { id: 7,  title: "08", cols: 25, rows: 35, seed: 29481 },
+  { id: 8,  title: "09", cols: 25, rows: 35, seed: 61092 },
+  { id: 9,  title: "10", cols: 27, rows: 37, seed: 44019 },
+  { id: 10, title: "11", cols: 27, rows: 37, seed: 89312 },
+  { id: 11, title: "12", cols: 27, rows: 39, seed: 12948 },
+  { id: 12, title: "13", cols: 29, rows: 39, seed: 67104 },
+  { id: 13, title: "14", cols: 29, rows: 41, seed: 38291 },
+  { id: 14, title: "15", cols: 29, rows: 41, seed: 90218 },
+  { id: 15, title: "16", cols: 31, rows: 43, seed: 51928 },
+  { id: 16, title: "17", cols: 31, rows: 43, seed: 74012 },
+  { id: 17, title: "18", cols: 33, rows: 45, seed: 28419 },
+  { id: 18, title: "19", cols: 33, rows: 45, seed: 60193 },
+  { id: 19, title: "20", cols: 35, rows: 47, seed: 83920 },
+  { id: 20, title: "∞",  cols: 25, rows: 35, seed: null }
+];
+
+let activeGameMode = 'normal';
+let currentMapIdx = 0;
+let maze = null;
+
+// Entidades Especiais
+let enemies = [];          // Drones sentinelas
+let shiftingGates = [];    // Portões laser
+let spikeTraps = [];       // Minas terrestres
+let keyItem = null;        // Chave do Modo Blackout
+let keyCollected = false;
+
+// Modo Chefão
+let bossEntity = null;
+let bossCores = [];
+let coresCollected = 0;
+
+// Modo Colapso
+let collapseY = -2;
+let collapseSpeed = 0.007;
+let collapseDelayFrames = 0;
+let collapseStarted = false;   // a névoa só desce após o primeiro movimento
+let portalMoves = 0;           // passos dados no modo Dobra Quântica
+let blackoutStart = 0;         // início da sequência de queda de luz (modo Blackout)
+
+// Modo Dobra Quântica
+let portals = [];
+let secretPassage = null;     // passagem secreta do modo Dobra Quântica (fechada até o interruptor)
+let bossIntroStart = 0;       // início da sequência do chefão (surge após 2 s)
+let bossWallsBackup = null;   // paredes originais do mapa, para restaurar após derrota
+let holdMoveTimer = null;     // movimento contínuo no chefão (segurar o dedo)
+let holdMoveDir = null;
+
+/* ---------- CHEFÃO FASE 1 ---------- */
+
+/* Remove a fração das paredes internas (a borda do mapa fica) */
+function destroyInnerWalls(md, frac, rng) {
+  const { cols, rows, grid } = md;
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < cols; x++) {
+      if (x + 1 < cols - 1 && rng() < frac) {
+        grid[y][x].walls[1] = false;
+        grid[y][x + 1].walls[3] = false;
+      }
+      if (y + 1 < rows - 1 && rng() < frac) {
+        grid[y][x].walls[2] = false;
+        grid[y + 1][x].walls[0] = false;
+      }
+    }
+  }
+}
+
+/* Chefão mira em linha reta na direção do jogador (eixo mais distante) */
+function bossAim() {
+  const b = bossEntity;
+  const dx = player.x - b.x, dy = player.y - b.y;
+  if (Math.abs(dx) >= Math.abs(dy) && dx !== 0) b.dir = { dx: Math.sign(dx), dy: 0 };
+  else if (dy !== 0) b.dir = { dx: 0, dy: Math.sign(dy) };
+  else b.dir = { dx: 0, dy: 0 };
+}
+
+function updateBossPhase1Tick() {
+  const b = bossEntity;
+  if (!b || b.hp <= 0 || !maze) return;
+  const now = Date.now();
+
+  // Espera o rugido (2 s após entrar no mapa)
+  if (!b.visible) {
+    if (now - bossIntroStart < 2000) return;
+    destroyInnerWalls(maze, 0.8, Math.random);
+    b.visible = true;
+    spawnExplosion(b.x, b.y, '#dc2626', 30);
+    playTone(60, 0.8, 'sawtooth');
+    haptic([120, 60, 120]);
+    showToast('🐉 O chefão rugiu e destruiu as paredes!');
+    bossAim();
+    return;
+  }
+
+  // Rastro dura 3 segundos: o trecho mais antigo some até sobrar só a cabeça
+  activePath.forEach(pt => { if (pt.t === undefined) pt.t = now; });
+  while (activePath.length > 1 && now - activePath[0].t > 3000) activePath.shift();
+  deadSegments.forEach(s => { if (s.t === undefined) s.t = now; });
+  deadSegments = deadSegments.filter(s => now - s.t <= 3000);
+
+  // Atordoado: espera
+  if (b.stunTimer > 0) { b.stunTimer--; return; }
+
+  b.moveTimer++;
+  if (b.moveTimer < b.speed) return;
+  b.moveTimer = 0;
+
+  const { cols, rows, grid } = maze;
+  const wallIdx = b.dir.dx === 1 ? 1 : b.dir.dx === -1 ? 3 : b.dir.dy === 1 ? 2 : 0;
+  const nx = b.x + b.dir.dx, ny = b.y + b.dir.dy;
+  // Bateu numa parede restante: vira e mira no jogador de novo
+  if (nx < 0 || ny < 0 || nx >= cols || ny >= rows || grid[b.y][b.x].walls[wallIdx]) {
+    bossAim();
+    return;
+  }
+  b.x = nx;
+  b.y = ny;
+
+  // Chegou na sua cabeça: derrota
+  if (b.x === player.x && b.y === player.y) {
+    onPlayerEliminated('O chefão atingiu sua cabeça!');
+    return;
+  }
+
+  // Rastro vermelho: dano de 20 e atordoamento de 1 s
+  const onRed = deadSegments.some(s =>
+    (s.x1 === b.x && s.y1 === b.y) || (s.x2 === b.x && s.y2 === b.y));
+  if (onRed) {
+    b.hp = Math.max(0, b.hp - 20);
+    b.stunTimer = 60;
+    spawnExplosion(b.x, b.y, '#ef4444', 24);
+    playTone(200, 0.2, 'square');
+    haptic(60);
+    if (b.hp <= 0) {
+      spawnExplosion(b.x, b.y, '#38bdf8', 35);
+      showToast('O chefão caiu!');
+      onWin();
+      return;
+    }
+    showToast(`💥 Chefão: ${b.hp}/100`);
+    bossAim();
+    return;
+  }
+
+  // Rastro amarelo: só atordoa por 1 s e volta a seguir você
+  const onYellow = activePath.some(pt => pt.x === b.x && pt.y === b.y);
+  if (onYellow) {
+    b.stunTimer = 60;
+    spawnExplosion(b.x, b.y, '#ffb800', 12);
+    playTone(480, 0.1, 'triangle');
+    bossAim();
+  }
+}
+
+/* Movimento contínuo: ao deslizar e segurar, o personagem continua andando (100 ms por passo) */
+function startHoldMove(dir) {
+  if (holdMoveDir === dir && holdMoveTimer) return;
+  stopHoldMove();
+  holdMoveDir = dir;
+  move(dir);
+  holdMoveTimer = setInterval(() => move(holdMoveDir), 100);
+}
+
+function stopHoldMove() {
+  clearInterval(holdMoveTimer);
+  holdMoveTimer = null;
+  holdMoveDir = null;
+}
+
+// Estado inicial do mapa (restaurado ao ser eliminado, para tentativas justas)
+let snapshot = null;
+let toastTimeout = null;
+
+// Partículas de Explosão
+let particles = [];
+
+// Jogador
+let player = { x: 0, y: 0 };
+let lastFacing = 'down';
+let shake = { x: 0, y: 0 };
+
+let activePath = [];
+let optimalPresses = 1;
+let deadSegments = [];
+let historyStack = [];
+
+let moveCount = 0;
+let started = false;
+let finished = false;
+let startTime = 0;
+let timerInterval = null;
+let animFrameId = null;
+
+let hintPath = [];
+let hintTimeout = null;
+
+// Preferências
+let isDarkTheme = true;
+let soundEnabled = true;
+let showDpad = false;
+let audioCtx = null;
+
+const canvas = document.getElementById('mazeCanvas');
+const ctx = canvas.getContext('2d');
+const CELL = 28;
+
+/* ============================================================
+   2. MOTOR DE ÁUDIO SINTETIZADO SEGURO
+   ============================================================ */
+function playTone(freq, dur = 0.06, type = 'sine') {
+  if (!soundEnabled) return;
+  try {
+    if (!audioCtx) {
+      const Cls = window.AudioContext || window.webkitAudioContext;
+      if (Cls) audioCtx = new Cls();
+    }
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    if (!audioCtx) return;
+
+    const t = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, t);
+    gain.gain.setValueAtTime(0.12, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(t);
+    osc.stop(t + dur);
+  } catch (_) {}
+}
+
+function playExplosionTone() {
+  playTone(80, 0.25, 'sawtooth');
+  setTimeout(() => playTone(50, 0.35, 'square'), 40);
+}
+
+function haptic(ms = 20) {
+  try { if ('vibrate' in navigator) navigator.vibrate(ms); } catch (_) {}
+}
+
+/* ============================================================
+   3. GERADOR DE LABIRINTO COM BFS E ENTIDADES
+   ============================================================ */
+function createPRNG(seed) {
+  let val = (seed || Math.floor(Math.random() * 999999)) % 2147483647;
+  if (val <= 0) val += 2147483646;
+  return () => {
+    val = (val * 16807) % 2147483647;
+    return (val - 1) / 2147483646;
+  };
+}
+
+function buildMaze(cols, rows, seed) {
+  const rnd = createPRNG(seed);
+  const entrance = Math.floor(cols / 2);
+  const exit = entrance;
+
+  const grid = Array.from({ length: rows }, () =>
+    Array.from({ length: cols }, () => ({
+      walls: [true, true, true, true],
+      visited: false
+    }))
+  );
+
+  const deltas = [
+    { x: 0, y: -1, w: 0, opp: 2 },
+    { x: 1, y: 0,  w: 1, opp: 3 },
+    { x: 0, y: 1,  w: 2, opp: 0 },
+    { x: -1, y: 0, w: 3, opp: 1 }
+  ];
+
+  grid[0][entrance].visited = true;
+  grid[0][entrance].walls[2] = false;
+  grid[1][entrance].walls[0] = false;
+  grid[1][entrance].visited = true;
+
+  const stack = [{ x: entrance, y: 1 }];
+
+  while (stack.length) {
+    const cur = stack[stack.length - 1];
+    const neighbors = [];
+
+    for (let i = 0; i < 4; i++) {
+      const d = deltas[i];
+      const nx = cur.x + d.x;
+      const ny = cur.y + d.y;
+      if (nx >= 0 && nx < cols && ny >= 0 && ny < rows && !grid[ny][nx].visited) {
+        neighbors.push({ ...d, nx, ny });
+      }
+    }
+
+    if (!neighbors.length) {
+      stack.pop();
+    } else {
+      const chosen = neighbors[Math.floor(rnd() * neighbors.length)];
+      grid[cur.y][cur.x].walls[chosen.w] = false;
+      grid[chosen.ny][chosen.nx].walls[chosen.opp] = false;
+      grid[chosen.ny][chosen.nx].visited = true;
+      stack.push({ x: chosen.nx, y: chosen.ny });
+    }
+  }
+
+  grid[0][entrance].walls[0] = false;
+  grid[rows - 1][exit].walls[2] = false;
+
+  return { cols, rows, entrance, exit, grid, rnd };
+}
+
+/* BFS REAL: Calcula a rota ótima no labirinto entre dois pontos */
+function solveOptimalPath(mazeData, startX = null, startY = null, targetX = null, targetY = null) {
+  const { cols, rows, entrance, exit, grid } = mazeData;
+  const sx = startX !== null ? startX : entrance;
+  const sy = startY !== null ? startY : 0;
+  const tx = targetX !== null ? targetX : exit;
+  const ty = targetY !== null ? targetY : (rows - 1);
+
+  const queue = [{ x: sx, y: sy, path: [{ x: sx, y: sy }] }];
+  const seen = new Set([`${sx},${sy}`]);
+  const deltas = [
+    { dx: 0, dy: -1, w: 0 }, { dx: 1, dy: 0,  w: 1 },
+    { dx: 0, dy: 1,  w: 2 }, { dx: -1, dy: 0, w: 3 }
+  ];
+
+  while (queue.length) {
+    const cur = queue.shift();
+    if (cur.x === tx && cur.y === ty) {
+      return cur.path;
+    }
+
+    for (let i = 0; i < 4; i++) {
+      const d = deltas[i];
+      if (!grid[cur.y][cur.x].walls[d.w]) {
+        const nx = cur.x + d.dx;
+        const ny = cur.y + d.dy;
+        if (nx >= 0 && nx < cols && ny >= 0 && ny < rows) {
+          const k = `${nx},${ny}`;
+          if (!seen.has(k)) {
+            seen.add(k);
+            queue.push({ x: nx, y: ny, path: [...cur.path, { x: nx, y: ny }] });
+          }
+        }
+      }
+    }
+  }
+  return [];
+}
+
+/* SETUP DE ENTIDADES EM CADA MODO */
+function setupModeEntities(mazeData, mapIdx) {
+  enemies = [];
+  shiftingGates = [];
+  spikeTraps = [];
+  keyItem = null;
+  keyCollected = false;
+  bossEntity = null;
+  bossCores = [];
+  coresCollected = 0;
+  collapseY = -2;
+  collapseDelayFrames = 0;
+  collapseStarted = false;
+  portalMoves = 0;
+  portals = [];
+  secretPassage = null;
+  particles = [];
+
+  const { cols, rows, rnd } = mazeData;
+  const optPath = solveOptimalPath(mazeData);
+
+  // 1. MODO SENTINELA: Drones Caçadores com IA BFS Real
+  if (activeGameMode === 'sentinel') {
+    sentinelClock = 0;
+
+    // Drones: sempre caçadores, nascem na metade inferior (longe da entrada)
+    const droneCount = Math.min(4, 1 + Math.floor(mapIdx / 5));
+    for (let i = 0; i < droneCount; i++) {
+      enemies.push({
+        id: i,
+        x: Math.floor(rnd() * (cols - 4)) + 2,
+        y: Math.floor(rows * 0.5 + rnd() * (rows * 0.4)),
+        // (cada drone patrulha uma área ao redor da posição inicial)
+        moveCooldown: 0,
+        state: 'patrol',       // 'patrol' ou 'chase'
+        home: null,            // centro da área de patrulha (definido no primeiro passo)
+        target: null,
+        lostTimer: 0,
+        speed: 20 + Math.floor(rnd() * 4) // ~1 casa a cada 0,3–0,4 s (o loop roda por quadro)
+      });
+    }
+
+    // Lasers: alternam aberto/fechado num ritmo fixo (previsível, sem sorte)
+    // (lasers desativados: o modo agora tem só drones e minas)
+    const gateCount = 0;
+    for (let g = 0; g < gateCount; g++) {
+      shiftingGates.push({
+        x: Math.floor(rnd() * (cols - 4)) + 2,
+        y: Math.floor(rnd() * (rows - 6)) + 3,
+        phase: g % 2,
+        open: true
+      });
+    }
+
+    // Minas: fixas e sempre ativas (o perigo é o mapa, não o acaso)
+    const trapCount = Math.min(4, 1 + Math.floor(mapIdx / 4));
+    for (let t = 0; t < trapCount; t++) {
+      spikeTraps.push({
+        x: Math.floor(rnd() * (cols - 2)) + 1,
+        y: Math.floor(rnd() * (rows - 5)) + 3,
+        phase: t % 2,
+        active: true
+      });
+    }
+  }
+
+  // 2. MODO BLACKOUT
+  if (activeGameMode === 'blackout') {
+    const keyY = Math.floor(rows * 0.55 + rnd() * (rows * 0.35));
+    const keyX = Math.floor(rnd() * (cols - 2)) + 1;
+    keyItem = { x: keyX, y: keyY };
+    blackoutStart = Date.now(); // começa a sequência de queda de luz ao entrar no mapa
+  }
+
+  // 3. MODO CHEFÃO (COM VULNERABILIDADE & ATORDOAMENTO)
+  if (activeGameMode === 'boss') {
+    // Chefão (fase 1): surge após 2 s, destrói 80% das paredes e corre em linha reta atrás de você.
+    // Tem 100 de vida; cada batida no seu rastro vermelho tira 20.
+    bossEntity = {
+      x: Math.floor(cols / 2),
+      y: Math.floor(rows * 0.7),
+      hp: 100,
+      maxHp: 100,
+      shielded: false,
+      visible: false,
+      stunTimer: 0,
+      moveTimer: 0,
+      speed: 10,
+      dir: { dx: 0, dy: 0 }
+    };
+    bossCores = [];
+    bossIntroStart = Date.now();
+    bossWallsBackup = mazeData.grid.map(row => row.map(c => [...c.walls]));
+  }
+
+  // 4. MODO COLAPSO: Velocidade balanceada e ritmo justo
+  if (activeGameMode === 'collapse') {
+    collapseY = -2;
+    // Velocidade muito mais amigável: ~70% mais lenta que a anterior
+    // (30% mais lenta que antes)
+    collapseSpeed = (0.007 + (mapIdx * 0.0004)) * 0.7;
+  }
+
+  // 5. MODO DOBRA QUÂNTICA: 2 pares de portais aleatórios que se reconfiguram a cada 10 passos
+  if (activeGameMode === 'portal') {
+    portals = randomPortalPairs(mazeData, null, rnd);
+    secretPassage = setupSecretPassage(mazeData);
+  }
+}
+
+/* ---------- PASSAGEM SECRETA + INTERRUPTOR (modo Dobra Quântica) ---------- */
+
+/* Distância em passos (BFS) a partir de uma ou mais casas, respeitando paredes */
+function bfsDistances(md, sources) {
+  const { cols, rows, grid } = md;
+  const dist = Array.from({ length: rows }, () => Array(cols).fill(-1));
+  const q = [];
+  sources.forEach(s => { dist[s.y][s.x] = 0; q.push(s); });
+  const moves = [[0, -1, 0], [1, 0, 1], [0, 1, 2], [-1, 0, 3]];
+  for (let qi = 0; qi < q.length; qi++) {
+    const c = q[qi];
+    for (const [dx, dy, w] of moves) {
+      if (grid[c.y][c.x].walls[w]) continue;
+      const nx = c.x + dx, ny = c.y + dy;
+      if (nx < 0 || ny < 0 || nx >= cols || ny >= rows || dist[ny][nx] >= 0) continue;
+      dist[ny][nx] = dist[c.y][c.x] + 1;
+      q.push({ x: nx, y: ny });
+    }
+  }
+  return dist;
+}
+
+/* Abre ou fecha a parede da passagem secreta */
+function setPassage(md, s, open) {
+  const { grid } = md;
+  if (s.w === 1) {
+    grid[s.ay][s.ax].walls[1] = !open;
+    grid[s.by][s.bx].walls[3] = !open;
+  } else {
+    grid[s.ay][s.ax].walls[2] = !open;
+    grid[s.by][s.bx].walls[0] = !open;
+  }
+}
+
+/* Escolhe uma parede que vira atalho (casas com distância bem diferente do início)
+   e um interruptor longe dela (pelo menos 10 passos). */
+function setupSecretPassage(md) {
+  const { cols, rows, grid, entrance, rnd } = md;
+  const d0 = bfsDistances(md, [{ x: entrance, y: 0 }]);
+  const cands = [];
+  for (let y = 1; y < rows - 1; y++) {
+    for (let x = 1; x < cols - 1; x++) {
+      if (grid[y][x].walls[1] && x + 1 < cols - 1) {
+        if (Math.abs(d0[y][x] - d0[y][x + 1]) >= 6) cands.push({ ax: x, ay: y, bx: x + 1, by: y, w: 1 });
+      }
+      if (grid[y][x].walls[2] && y + 1 < rows - 1) {
+        if (Math.abs(d0[y][x] - d0[y + 1][x]) >= 6) cands.push({ ax: x, ay: y, bx: x, by: y + 1, w: 2 });
+      }
+    }
+  }
+  if (!cands.length) return null;
+  const c = cands[Math.floor(rnd() * cands.length)];
+
+  const dPass = bfsDistances(md, [{ x: c.ax, y: c.ay }, { x: c.bx, y: c.by }]);
+  const sw = [];
+  for (let y = 1; y < rows - 1; y++) {
+    for (let x = 0; x < cols; x++) {
+      if (dPass[y][x] >= 10) sw.push({ x, y });
+    }
+  }
+  if (!sw.length) return null;
+  const s = sw[Math.floor(rnd() * sw.length)];
+
+  const secret = { ...c, sx: s.x, sy: s.y, on: false };
+  setPassage(md, secret, false);
+  return secret;
+}
+
+/* MODO DOBRA QUÂNTICA: portais sorteados em casas aleatórias do mapa */
+// Tipos de portal: normal (ciano), direcional (magenta), gravidade (dourado), instável (laranja)
+const PORTAL_TYPES = [
+  { type: 'normal',      color: '#06b6d4' },
+  { type: 'directional', color: '#d946ef' },
+  { type: 'gravity',     color: '#f59e0b' },
+  { type: 'unstable',    color: '#fb923c' }
+];
+const PORTAL_DIRS = [{ dx: 0, dy: -1 }, { dx: 1, dy: 0 }, { dx: 0, dy: 1 }, { dx: -1, dy: 0 }];
+
+function randomPortalPairs(md, avoid, rng = Math.random) {
+  const used = new Set();
+  const pick = () => {
+    for (let t = 0; t < 300; t++) {
+      const x = Math.floor(rng() * md.cols);
+      const y = 2 + Math.floor(rng() * (md.rows - 4)); // nunca na entrada nem na saída
+      const k = `${x},${y}`;
+      if (used.has(k)) continue;
+      if (avoid && avoid.x === x && avoid.y === y) continue;
+      used.add(k);
+      return { x, y };
+    }
+    return null;
+  };
+  const pairs = [];
+  for (let i = 0; i < PORTAL_TYPES.length; i++) {
+    const a = pick();
+    const b = pick();
+    if (!a || !b) break;
+    const t = PORTAL_TYPES[i];
+    const randDir = () => PORTAL_DIRS[Math.floor(rng() * PORTAL_DIRS.length)];
+    pairs.push({
+      id: i + 1,
+      type: t.type,
+      color: t.color,
+      x1: a.x, y1: a.y,
+      x2: b.x, y2: b.y,
+      dir: t.type === 'directional' ? randDir() : null, // entrada só nesse sentido
+      out: t.type === 'gravity' ? randDir() : null      // saída força esse sentido
+    });
+  }
+  return pairs;
+}
+
+/* Chamado a cada passo no modo Dobra Quântica.
+   Só o portal instável muda: a cada 6 passos ele troca de destino (a saída). */
+function portalTick() {
+  portalMoves++;
+  if (portalMoves % 6 !== 0) return;
+  const unstable = portals.find(p => p.type === 'unstable');
+  if (!unstable) return;
+  const taken = new Set();
+  portals.forEach(p => {
+    taken.add(`${p.x1},${p.y1}`);
+    taken.add(`${p.x2},${p.y2}`);
+  });
+  taken.delete(`${unstable.x2},${unstable.y2}`);
+  for (let t = 0; t < 300; t++) {
+    const x = Math.floor(Math.random() * maze.cols);
+    const y = 2 + Math.floor(Math.random() * (maze.rows - 4));
+    const k = `${x},${y}`;
+    if (taken.has(k) || (x === player.x && y === player.y)) continue;
+    unstable.x2 = x;
+    unstable.y2 = y;
+    spawnExplosion(x, y, unstable.color, 12);
+    playTone(400, 0.12, 'sine');
+    showToast('⚛ Um portal instável mudou de destino!');
+    return;
+  }
+}
+
+/* SNAPSHOT: guarda o estado inicial das entidades para restaurar após uma derrota */
+function takeSnapshot() {
+  snapshot = JSON.parse(JSON.stringify({
+    enemies, shiftingGates, spikeTraps, keyItem, keyCollected,
+    bossEntity, bossCores, coresCollected, portals
+  }));
+}
+
+function restoreSnapshot() {
+  if (!snapshot) return;
+  // Cópia profunda: o snapshot original precisa continuar intacto para novas derrotas
+  const s = JSON.parse(JSON.stringify(snapshot));
+  enemies = s.enemies;
+  shiftingGates = s.shiftingGates;
+  spikeTraps = s.spikeTraps;
+  keyItem = s.keyItem;
+  keyCollected = s.keyCollected;
+  bossEntity = s.bossEntity;
+  bossCores = s.bossCores;
+  coresCollected = s.coresCollected;
+  portals = s.portals;
+  // Ao morrer, a passagem secreta volta a ficar fechada e o interruptor desligado
+  if (secretPassage && maze) {
+    setPassage(maze, secretPassage, false);
+    secretPassage.on = false;
+  }
+  // Chefão: as paredes voltam e o rugido recomeça
+  if (activeGameMode === 'boss' && bossWallsBackup && maze) {
+    maze.grid.forEach((row, y) => row.forEach((c, x) => { c.walls = [...bossWallsBackup[y][x]]; }));
+    bossIntroStart = Date.now();
+    stopHoldMove();
+  }
+  particles = [];
+  refreshSpecialHUD();
+}
+
+function refreshSpecialHUD() {
+  const s = document.getElementById('hudSpecialStatus');
+  if (activeGameMode === 'blackout') {
+    s.textContent = keyCollected ? '1/1' : '0/1';
+    s.style.color = keyCollected ? '#10b981' : '#ef4444';
+  } else if (activeGameMode === 'boss') {
+    s.textContent = bossEntity && bossEntity.hp <= 0 ? 'DERROTADO!' : `${bossEntity ? bossEntity.hp : 100}/100`;
+    s.style.color = bossEntity && bossEntity.hp <= 0 ? '#10b981' : '#38bdf8';
+  }
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(() => t.classList.remove('show'), 4000);
+}
+
+/* Número mínimo de "arrastadas" (presses) para a rota ótima: conta mudanças de direção */
+function countOptimalPresses(path) {
+  if (!path || path.length < 2) return 0;
+  let presses = 1;
+  let prevDir = null;
+  for (let i = 1; i < path.length; i++) {
+    const dx = path[i].x - path[i - 1].x;
+    const dy = path[i].y - path[i - 1].y;
+    const dir = `${dx},${dy}`;
+    if (prevDir !== null && dir !== prevDir) presses++;
+    prevDir = dir;
+  }
+  return presses;
+}
+
+/* SPAWN DE PARTÍCULAS */
+function spawnExplosion(x, y, color = '#ef4444', count = 18) {
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = Math.random() * 3 + 1;
+    particles.push({
+      x: x * CELL + CELL / 2,
+      y: y * CELL + CELL / 2,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      color: color,
+      life: 22 + Math.random() * 12,
+      maxLife: 34
+    });
+  }
+}
+
+/* ============================================================
+   4. RENDERIZAÇÃO GRÁFICA & FEEDBACK VISUAL
+   ============================================================ */
+function resizeCanvas() {
+  if (!maze) return;
+  const logicalW = maze.cols * CELL;
+  const logicalH = maze.rows * CELL;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2.2);
+
+  canvas.width = Math.round(logicalW * dpr);
+  canvas.height = Math.round(logicalH * dpr);
+  canvas.style.aspectRatio = `${logicalW} / ${logicalH}`;
+
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  draw();
+}
+
+function draw() {
+  if (!maze) return;
+  const { cols, rows, entrance, exit, grid } = maze;
+  const w = cols * CELL;
+  const h = rows * CELL;
+
+  const style = getComputedStyle(document.body);
+  const wallColor = style.getPropertyValue('--maze-wall').trim() || '#647098';
+  const bgColor = style.getPropertyValue('--maze-bg').trim() || '#0f1118';
+  const trailActiveColor = style.getPropertyValue('--trail-active').trim() || '#ffb800';
+  const trailDeadColor = style.getPropertyValue('--trail-dead').trim() || '#ef4444';
+  const laserColor = style.getPropertyValue('--laser-gate').trim() || '#06b6d4';
+
+  ctx.fillStyle = bgColor;
+  ctx.fillRect(0, 0, w, h);
+
+  // 1. RASTRO VERMELHO (RETORNO / BECO SEM SAÍDA)
+  if (deadSegments.length > 0) {
+    ctx.strokeStyle = trailDeadColor;
+    ctx.lineWidth = CELL * 0.32;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.globalAlpha = 0.75;
+    ctx.beginPath();
+    deadSegments.forEach(seg => {
+      ctx.moveTo(seg.x1 * CELL + CELL / 2, seg.y1 * CELL + CELL / 2);
+      ctx.lineTo(seg.x2 * CELL + CELL / 2, seg.y2 * CELL + CELL / 2);
+    });
+    ctx.stroke();
+    ctx.globalAlpha = 1.0;
+  }
+
+  // 2. RASTRO DOURADO ATIVO
+  if (activePath.length > 1) {
+    ctx.strokeStyle = trailActiveColor;
+    ctx.lineWidth = CELL * 0.32;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.globalAlpha = 0.85;
+    ctx.beginPath();
+    ctx.moveTo(activePath[0].x * CELL + CELL / 2, activePath[0].y * CELL + CELL / 2);
+    for (let i = 1; i < activePath.length; i++) {
+      ctx.lineTo(activePath[i].x * CELL + CELL / 2, activePath[i].y * CELL + CELL / 2);
+    }
+    ctx.stroke();
+    ctx.globalAlpha = 1.0;
+  }
+
+  // BARRA DE VIDA DO CHEFÃO (em cima do mapa)
+  if (activeGameMode === 'boss' && bossEntity && bossEntity.visible) {
+    const pct = Math.max(0, bossEntity.hp) / 100;
+    const bw = Math.min(w - 32, 260);
+    const bx0 = (w - bw) / 2, by0 = 8;
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+    ctx.fillRect(bx0 - 2, by0 - 2, bw + 4, 16);
+    ctx.fillStyle = '#dc2626';
+    ctx.fillRect(bx0, by0, bw * pct, 12);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 10px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(`CHEFÃO ${Math.max(0, bossEntity.hp)}/100`, w / 2, by0 + 10);
+    ctx.textAlign = 'left';
+  }
+
+  // 3. DICA TÁTICA
+  if (hintPath.length > 1) {
+    ctx.strokeStyle = '#38bdf8';
+    ctx.lineWidth = 3.5;
+    ctx.setLineDash([5, 5]);
+    ctx.beginPath();
+    hintPath.forEach((pt, i) => {
+      const cx = pt.x * CELL + CELL / 2;
+      const cy = pt.y * CELL + CELL / 2;
+      if (i === 0) ctx.moveTo(cx, cy);
+      else ctx.lineTo(cx, cy);
+    });
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // 4. PAREDES DO LABIRINTO (NÍTIDAS E ENCORPADAS: 3.2px)
+  ctx.strokeStyle = wallColor;
+  ctx.lineWidth = 3.2;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < cols; x++) {
+      const cell = grid[y][x];
+      const px = x * CELL;
+      const py = y * CELL;
+
+      if (cell.walls[0]) { ctx.moveTo(px, py); ctx.lineTo(px + CELL, py); }
+      if (cell.walls[1]) { ctx.moveTo(px + CELL, py); ctx.lineTo(px + CELL, py + CELL); }
+      if (cell.walls[2]) { ctx.moveTo(px, py + CELL); ctx.lineTo(px + CELL, py + CELL); }
+      if (cell.walls[3]) { ctx.moveTo(px, py); ctx.lineTo(px, py + CELL); }
+    }
+  }
+  ctx.stroke();
+
+  // 5. PORTÕES & MINAS (SENTINELA)
+  if (activeGameMode === 'sentinel') {
+    shiftingGates.forEach(g => {
+      if (!g.open) {
+        ctx.strokeStyle = laserColor;
+        ctx.lineWidth = 3;
+        ctx.shadowColor = laserColor;
+        ctx.shadowBlur = 8;
+        ctx.beginPath();
+        ctx.moveTo(g.x * CELL + 2, g.y * CELL + CELL / 2);
+        ctx.lineTo(g.x * CELL + CELL - 2, g.y * CELL + CELL / 2);
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+      }
+    });
+
+    spikeTraps.forEach(sp => {
+      const sx = sp.x * CELL + CELL / 2;
+      const sy = sp.y * CELL + CELL / 2;
+      ctx.beginPath();
+      ctx.arc(sx, sy, CELL * 0.22, 0, Math.PI * 2);
+      ctx.fillStyle = sp.active ? '#ef4444' : '#4b5563';
+      ctx.fill();
+    });
+  }
+
+  // 6. CHAVE (BLACKOUT)
+  if (activeGameMode === 'blackout' && keyItem && !keyCollected) {
+    const kx = keyItem.x * CELL + CELL / 2;
+    const ky = keyItem.y * CELL + CELL / 2;
+    ctx.beginPath();
+    ctx.arc(kx, ky, CELL * 0.28, 0, Math.PI * 2);
+    ctx.fillStyle = '#f59e0b';
+    ctx.fill();
+    ctx.fillStyle = '#000';
+    ctx.font = 'bold 11px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('🔑', kx, ky);
+  }
+
+  // 7. CÉLULAS & CHEFÃO COM ATORDOAMENTO (MODO CHEFÃO)
+  if (activeGameMode === 'boss') {
+    bossCores.forEach(core => {
+      if (!core.collected) {
+        const cx = core.x * CELL + CELL / 2;
+        const cy = core.y * CELL + CELL / 2;
+        ctx.beginPath();
+        ctx.arc(cx, cy, CELL * 0.3, 0, Math.PI * 2);
+        ctx.fillStyle = '#38bdf8';
+        ctx.shadowColor = '#38bdf8';
+        ctx.shadowBlur = 10;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = '#000';
+        ctx.font = 'bold 12px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('⚡', cx, cy);
+      }
+    });
+
+    if (bossEntity && bossEntity.hp > 0 && bossEntity.visible !== false) {
+      const bx = bossEntity.x * CELL + CELL / 2;
+      const by = bossEntity.y * CELL + CELL / 2;
+
+      const isStunned = bossEntity.stunTimer > 0;
+
+      // Escudo
+      if (bossEntity.shielded) {
+        ctx.beginPath();
+        ctx.arc(bx, by, CELL * 0.65, 0, Math.PI * 2);
+        ctx.strokeStyle = isStunned ? 'rgba(56, 189, 248, 0.4)' : 'rgba(6, 182, 212, 0.7)';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+      }
+
+      // Corpo do Boss
+      ctx.beginPath();
+      ctx.arc(bx, by, CELL * 0.44, 0, Math.PI * 2);
+      ctx.fillStyle = isStunned ? '#64748b' : '#dc2626'; // Cinza se atordoado
+      ctx.shadowColor = isStunned ? '#38bdf8' : '#dc2626';
+      ctx.shadowBlur = 12;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      // Núcleo mecânico / Indicador de Stun
+      ctx.beginPath();
+      ctx.arc(bx, by, CELL * 0.18, 0, Math.PI * 2);
+      ctx.fillStyle = isStunned ? '#38bdf8' : '#fff';
+      ctx.fill();
+
+      if (isStunned) {
+        ctx.fillStyle = '#38bdf8';
+        ctx.font = 'bold 9px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('⚡STUN', bx, by - CELL * 0.55);
+      }
+    }
+  }
+
+  // 7b. INTERRUPTOR E PASSAGEM SECRETA (modo Dobra Quântica)
+  if (activeGameMode === 'portal' && secretPassage) {
+    const s = secretPassage;
+    // Interruptor: cinza quando desligado, verde quando ligado
+    ctx.beginPath();
+    ctx.arc(s.sx * CELL + CELL / 2, s.sy * CELL + CELL / 2, CELL * 0.2, 0, Math.PI * 2);
+    ctx.fillStyle = s.on ? '#22c55e' : '#64748b';
+    ctx.fill();
+    // Passagem aberta: traço tracejado verde no lugar da parede
+    if (s.on) {
+      ctx.strokeStyle = '#22c55e';
+      ctx.lineWidth = 3;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      if (s.w === 1) {
+        const bx = (s.ax + 1) * CELL;
+        ctx.moveTo(bx, s.ay * CELL + 4);
+        ctx.lineTo(bx, (s.ay + 1) * CELL - 4);
+      } else {
+        const by = (s.ay + 1) * CELL;
+        ctx.moveTo(s.ax * CELL + 4, by);
+        ctx.lineTo((s.ax + 1) * CELL - 4, by);
+      }
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+  }
+
+  // 8. PORTAIS EM PONTOS ESTRATÉGICOS
+  if (activeGameMode === 'portal' && portals.length > 0) {
+    // Portais só ficam nítidos perto do jogador; longe, aparecem como um brilho fraco
+    const portalAlpha = (x, y) => {
+      const d = Math.max(Math.abs(x - player.x), Math.abs(y - player.y));
+      return d <= 3 ? 1 : 0.18;
+    };
+    portals.forEach(p => {
+      drawPortalRing(p.x1 * CELL + CELL / 2, p.y1 * CELL + CELL / 2, p.color, portalAlpha(p.x1, p.y1));
+      drawPortalRing(p.x2 * CELL + CELL / 2, p.y2 * CELL + CELL / 2, p.color, portalAlpha(p.x2, p.y2));
+      // Gravidade: seta na saída mostrando a direção forçada
+      if (p.out) {
+        const cx = p.x2 * CELL + CELL / 2, cy = p.y2 * CELL + CELL / 2;
+        ctx.globalAlpha = portalAlpha(p.x2, p.y2);
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx + p.out.dx * CELL * 0.6, cy + p.out.dy * CELL * 0.6);
+        ctx.strokeStyle = p.color;
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+      // Direcional: pequena seta indicando o sentido de entrada
+      if (p.dir) {
+        [[p.x1, p.y1], [p.x2, p.y2]].forEach(([x, y]) => {
+          const cx = x * CELL + CELL / 2, cy = y * CELL + CELL / 2;
+          ctx.globalAlpha = portalAlpha(x, y);
+          ctx.beginPath();
+          ctx.moveTo(cx, cy);
+          ctx.lineTo(cx + p.dir.dx * CELL * 0.55, cy + p.dir.dy * CELL * 0.55);
+          ctx.strokeStyle = p.color;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+        });
+      }
+    });
+  }
+
+  // 9. ENTRADA E EXTRAÇÃO
+  ctx.fillStyle = '#6366f1';
+  ctx.fillRect(entrance * CELL + 2, 0, CELL - 4, 3);
+
+  const exX = exit * CELL;
+  const exY = (rows - 1) * CELL;
+  const isLocked = (activeGameMode === 'blackout' && !keyCollected) ||
+                   (activeGameMode === 'boss' && bossEntity && bossEntity.hp > 0);
+
+  ctx.fillStyle = isLocked ? 'rgba(239, 68, 68, 0.3)' : 'rgba(16, 185, 129, 0.3)';
+  ctx.fillRect(exX + 2, exY + 2, CELL - 4, CELL - 4);
+  ctx.fillStyle = isLocked ? '#ef4444' : '#10b981';
+  ctx.fillRect(exX + 2, h - 3, CELL - 4, 3);
+
+  // 10. DRONES SENTINELAS (MODO SENTINELA)
+  if (activeGameMode === 'sentinel' && enemies.length > 0) {
+    enemies.forEach(en => {
+      const ex = en.x * CELL + CELL / 2;
+      const ey = en.y * CELL + CELL / 2;
+
+      ctx.beginPath();
+      ctx.arc(ex, ey, CELL * 0.45, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(239, 68, 68, 0.35)';
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(ex, ey, CELL * 0.28, 0, Math.PI * 2);
+      ctx.fillStyle = '#dc2626';
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(ex, ey, 2.5, 0, Math.PI * 2);
+      ctx.fillStyle = '#fff';
+      ctx.fill();
+    });
+  }
+
+  // 11. CABEÇA DO JOGADOR
+  const px = (player.x * CELL + CELL / 2) + shake.x;
+  const py = (player.y * CELL + CELL / 2) + shake.y;
+
+  const glow = ctx.createRadialGradient(px, py, 2, px, py, CELL * 0.7);
+  glow.addColorStop(0, 'rgba(255, 184, 0, 0.55)');
+  glow.addColorStop(1, 'rgba(255, 184, 0, 0)');
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.arc(px, py, CELL * 0.7, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.arc(px, py, CELL * 0.35, 0, Math.PI * 2);
+  ctx.fillStyle = isDarkTheme ? '#191c28' : '#ffffff';
+  ctx.fill();
+  ctx.lineWidth = 2.2;
+  ctx.strokeStyle = '#ffb800';
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(px, py, CELL * 0.18, 0, Math.PI * 2);
+  ctx.fillStyle = '#ffb800';
+  ctx.fill();
+
+  const angles = { up: -Math.PI / 2, right: 0, down: Math.PI / 2, left: Math.PI };
+  const ang = angles[lastFacing] || (Math.PI / 2);
+  const tipX = px + Math.cos(ang) * (CELL * 0.32);
+  const tipY = py + Math.sin(ang) * (CELL * 0.32);
+
+  ctx.beginPath();
+  ctx.arc(tipX, tipY, 2.8, 0, Math.PI * 2);
+  ctx.fillStyle = isDarkTheme ? '#ffffff' : '#000000';
+  ctx.fill();
+
+  // 12. PARTÍCULAS
+  if (particles.length > 0) {
+    particles.forEach(p => {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, (p.life / p.maxLife) * 3, 0, Math.PI * 2);
+      ctx.fillStyle = p.color;
+      ctx.fill();
+    });
+  }
+
+  // 13. NÉVOA / LANTERNA (MODO BLACKOUT)
+  if (activeGameMode === 'blackout') {
+    // Sequência ao entrar no mapa:
+    // 0–2 s: normal | 2–2,6 s: 3 pulsos rápidos de escuro total | 2,6–4,6 s: normal
+    // 4,6–5,2 s: tudo preto | 5,2 s+: a lanterna acende aos poucos (1,5 s)
+    const t = (Date.now() - blackoutStart) / 1000;
+    let covered = false;   // há escuridão nesta fração do tempo?
+    let litFrac = 1;       // fração do raio de luz (0 = nada iluminado)
+    if (t < 2) {
+      covered = false;
+    } else if (t < 2.6) {
+      covered = (t - 2) % 0.2 < 0.1; // 3 pulsos de 0,1 s no escuro, um a cada 0,2 s
+      litFrac = 0;
+    } else if (t < 4.6) {
+      covered = false;
+    } else if (t < 5.2) {
+      covered = true;
+      litFrac = 0;                    // apagão total de 0,6 s
+    } else {
+      covered = true;
+      litFrac = Math.min(1, (t - 5.2) / 1.5); // a lanterna acende
+    }
+
+    if (covered) {
+      ctx.save();
+      // A lanterna encolhe um pouco a cada mapa (mais difícil), com piso mínimo.
+      // Alcance: +65% e depois -18% (1,65 × 0,82 ≈ 1,35 do valor original)
+      const lightRadius = CELL * Math.max(2.9, 3.8 - (currentMapIdx % 20) * 0.05) * 1.65 * 0.82 * litFrac;
+      const darkness = ctx.createRadialGradient(px, py, lightRadius * 0.3, px, py, lightRadius);
+      darkness.addColorStop(0, 'rgba(11, 12, 17, 0)');
+      darkness.addColorStop(0.85, 'rgba(11, 12, 17, 0.95)');
+      darkness.addColorStop(1, 'rgba(11, 12, 17, 1)');
+
+      ctx.fillStyle = darkness;
+      ctx.fillRect(0, 0, w, h);
+
+      if (lightRadius > 0) {
+        ctx.fillStyle = '#0b0c11';
+        ctx.beginPath();
+        ctx.rect(0, 0, w, h);
+        ctx.arc(px, py, lightRadius, 0, Math.PI * 2, true);
+        ctx.fill();
+      } else {
+        ctx.fillStyle = '#0b0c11';
+        ctx.fillRect(0, 0, w, h);
+      }
+      ctx.restore();
+    }
+  }
+
+  // 14. ONDA DE GÁS TÓXICO COM CARÊNCIA (MODO COLAPSO)
+  if (activeGameMode === 'collapse') {
+    if (collapseDelayFrames > 0) {
+      // Exibe contagem regressiva suave antes do gás começar a avançar
+      ctx.fillStyle = 'rgba(239, 68, 68, 0.85)';
+      ctx.font = 'bold 12px monospace';
+      ctx.textAlign = 'center';
+      const secLeft = Math.ceil(collapseDelayFrames / 60);
+      ctx.fillText(`EVACUAÇÃO: GÁS EM ${secLeft}s`, w / 2, 18);
+    } else if (collapseY > 0) {
+      const cy = collapseY * CELL;
+      ctx.fillStyle = 'rgba(239, 68, 68, 0.45)';
+      ctx.fillRect(0, 0, w, cy);
+
+      ctx.strokeStyle = '#ef4444';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(0, cy);
+      ctx.lineTo(w, cy);
+      ctx.stroke();
+    }
+  }
+}
+
+function drawPortalRing(x, y, color, alpha = 1) {
+  ctx.globalAlpha = alpha;
+  ctx.beginPath();
+  ctx.arc(x, y, CELL * 0.38, 0, Math.PI * 2);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 3;
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 8;
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+  ctx.globalAlpha = 1;
+}
+
+/* ============================================================
+   5. LOOP EM TEMPO REAL: IA BFS, CHEFÃO STUN & COLAPSO
+   ============================================================ */
+function gameTickLoop() {
+  if (document.getElementById('gameLayer').classList.contains('active') && !finished && !gamePaused) {
+    if (activeGameMode === 'sentinel') updateSentinelTick();
+    if (activeGameMode === 'boss') updateBossPhase1Tick();
+    if (activeGameMode === 'collapse') updateCollapseTick();
+    updateParticles();
+    draw();
+  }
+  animFrameId = requestAnimationFrame(gameTickLoop);
+}
+
+function updateParticles() {
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx;
+    p.y += p.vy;
+    p.life--;
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+}
+
+/* MODO SENTINELA: drones caçadores (BFS), lasers em ritmo fixo, minas fixas.
+   Chamado a cada quadro (sentinelClock conta quadros). */
+let sentinelClock = 0;
+
+/* Casas do rastro vermelho (abandonado): para o drone, são parede */
+function sentinelRedCells() {
+  const set = new Set();
+  deadSegments.forEach(s => {
+    set.add(`${s.x1},${s.y1}`);
+    set.add(`${s.x2},${s.y2}`);
+  });
+  return set;
+}
+
+/* Próximo passo do drone (BFS), sem entrar em parede, nem no rastro vermelho */
+function sentinelNextStep(sx, sy, tx, ty, ignoreRed = false) {
+  if (sx === tx && sy === ty) return null;
+  const { cols, rows, grid } = maze;
+  const red = ignoreRed ? new Set() : sentinelRedCells();
+  const prev = new Map();
+  const key = (x, y) => `${x},${y}`;
+  const queue = [{ x: sx, y: sy }];
+  prev.set(key(sx, sy), null);
+  const moves = [
+    { dx: 0, dy: -1, wall: 0 },
+    { dx: 1, dy: 0, wall: 1 },
+    { dx: 0, dy: 1, wall: 2 },
+    { dx: -1, dy: 0, wall: 3 }
+  ];
+  let found = false;
+  for (let qi = 0; qi < queue.length && !found; qi++) {
+    const cur = queue[qi];
+    for (const m of moves) {
+      const nx = cur.x + m.dx, ny = cur.y + m.dy;
+      if (nx < 0 || ny < 0 || nx >= cols || ny >= rows) continue;
+      if (grid[cur.y][cur.x].walls[m.wall]) continue;
+      const k = key(nx, ny);
+      if (prev.has(k)) continue;
+      if (red.has(k) && !(nx === tx && ny === ty)) continue;
+      prev.set(k, cur);
+      if (nx === tx && ny === ty) { found = true; break; }
+      queue.push({ x: nx, y: ny });
+    }
+  }
+  if (!found) return null;
+  // Volta pelo caminho até o primeiro passo
+  let node = { x: tx, y: ty };
+  let p = prev.get(key(tx, ty));
+  while (p && !(p.x === sx && p.y === sy)) {
+    node = p;
+    p = prev.get(key(p.x, p.y));
+  }
+  return node;
+}
+
+/* Vê o alvo no mesmo beco: mesma linha ou coluna, até 7 casas, sem parede no meio */
+function sentinelCanSee(en, target) {
+  const { grid } = maze;
+  const SIGHT = 7;
+  if (en.x === target.x) {
+    const dir = target.y > en.y ? 1 : -1;
+    const wall = dir === 1 ? 2 : 0;
+    if (Math.abs(target.y - en.y) > SIGHT) return false;
+    for (let y = en.y; y !== target.y; y += dir) {
+      if (grid[y][en.x].walls[wall]) return false;
+    }
+    return true;
+  }
+  if (en.y === target.y) {
+    const dir = target.x > en.x ? 1 : -1;
+    const wall = dir === 1 ? 1 : 3;
+    if (Math.abs(target.x - en.x) > SIGHT) return false;
+    for (let x = en.x; x !== target.x; x += dir) {
+      if (grid[en.y][x].walls[wall]) return false;
+    }
+    return true;
+  }
+  return false;
+}
+
+/* Ponto de patrulha: uma casa aleatória alcançável, até 5 casas de distância do ponto de origem */
+function sentinelPickPatrolPoint(en) {
+  const { cols, rows } = maze;
+  for (let tries = 0; tries < 30; tries++) {
+    const x = en.home.x + Math.floor(Math.random() * 11) - 5;
+    const y = en.home.y + Math.floor(Math.random() * 11) - 5;
+    if (x < 0 || y < 0 || x >= cols || y >= rows) continue;
+    if (x === en.x && y === en.y) continue;
+    if (sentinelNextStep(en.x, en.y, x, y)) return { x, y };
+  }
+  return null;
+}
+
+function updateSentinelTick() {
+  sentinelClock++;
+
+  // Lasers: cada um alterna ~a cada 1,5 s, com fase própria (um abre quando o outro fecha)
+  shiftingGates.forEach(g => {
+    g.open = (Math.floor(sentinelClock / 90) + g.phase) % 2 === 0;
+  });
+
+  // Minas: alternam em ritmo fixo (~2,5 s ativa, ~2,5 s inativa), com fase própria
+  spikeTraps.forEach(sp => {
+    sp.active = (Math.floor(sentinelClock / 150) + sp.phase) % 2 === 0;
+  });
+
+  const trapHit = spikeTraps.find(sp => sp.active && sp.x === player.x && sp.y === player.y);
+  if (trapHit) {
+    spawnExplosion(trapHit.x, trapHit.y, '#ef4444', 14);
+    onPlayerEliminated('Você pisou em uma mina ativa!');
+    return;
+  }
+
+  for (let i = enemies.length - 1; i >= 0; i--) {
+    const en = enemies[i];
+    en.moveCooldown++;
+    if (en.moveCooldown < en.speed) continue;
+    en.moveCooldown = 0;
+
+    if (!en.home) en.home = { x: en.x, y: en.y };
+
+    // 1) Vê o jogador no mesmo beco (mesma linha/coluna, sem parede no meio)? -> passa a perseguir
+    if (sentinelCanSee(en, player)) {
+      en.state = 'chase';
+      en.lostTimer = 0;
+    } else if (en.state === 'chase') {
+      en.lostTimer++;
+      if (en.lostTimer > 12) {          // perdeu o jogador por tempo suficiente -> volta a patrulhar
+        en.state = 'patrol';
+        en.target = null;
+      }
+    }
+
+    // 2) Escolhe para onde ir
+    let goal;
+    if (en.state === 'chase') {
+      goal = { x: player.x, y: player.y };
+    } else {
+      if (!en.target || (en.x === en.target.x && en.y === en.target.y)) {
+        en.target = sentinelPickPatrolPoint(en);
+      }
+      goal = en.target;
+    }
+
+    // 3) Anda um passo pelo caminho (vermelho = parede; drone não entra nele)
+    let step = null;
+    if (en.retrace) {
+      // Modo retorno: voltando pelo caminho que já fez
+      const back = en.retrace.shift();
+      if (back && !sentinelRedCells().has(`${back.x},${back.y}`)) {
+        step = back;
+      } else {
+        en.retrace = null;
+        en.state = 'patrol';
+        en.target = null;
+        continue;
+      }
+    } else {
+      // Caminho direto (o rastro vermelho ainda não é desviado aqui: se for dar nele, é batida)
+      step = goal ? sentinelNextStep(en.x, en.y, goal.x, goal.y, true) : null;
+    }
+
+    const bumped = !!step && sentinelRedCells().has(`${step.x},${step.y}`);
+    if (!step || bumped) {
+      if (bumped) {
+        en.bumps = (en.bumps || 0) + 1;
+        playTone(480, 0.04, 'triangle');
+      }
+      if (en.bumps >= 22) {
+        // 22 batidas: volta pelo caminho que ele já fez
+        en.bumps = 0;
+        en.retrace = (en.history || []).slice().reverse();
+      }
+      en.state = 'patrol';
+      en.target = null;
+      en.lostTimer = 0;
+      continue;
+    }
+
+    en.history = [...(en.history || []), { x: en.x, y: en.y }].slice(-40);
+    en.x = step.x;
+    en.y = step.y;
+
+    // 4) Chegou na casa do jogador -> eliminado
+    if (en.x === player.x && en.y === player.y) {
+      spawnExplosion(player.x, player.y, '#ef4444', 14);
+      onPlayerEliminated('Um drone alcançou você!');
+      return;
+    }
+  }
+
+  // Drones não colidem entre si: passam uns pelos outros e seguem o percurso.
+}
+
+/* ATUALIZAÇÃO DO MODO CHEFÃO (COM STUN AO ENCOSTAR NO RASTRO) */
+function updateBossTick() {
+  if (!bossEntity || bossEntity.hp <= 0) return;
+
+  // Se estiver atordoado, reduz o timer e NÃO se move nem dá dano
+  if (bossEntity.stunTimer > 0) {
+    bossEntity.stunTimer--;
+    return;
+  }
+
+  bossEntity.moveTimer++;
+  // Enfurece conforme você coleta células: quanto mais células, mais rápido ele anda
+  const bossSpeed = Math.max(14, bossEntity.speed - coresCollected * 7);
+  if (bossEntity.moveTimer >= bossSpeed) {
+    bossEntity.moveTimer = 0;
+
+    // Rota BFS suave em direção ao jogador
+    const pathToPlayer = solveOptimalPath(maze, bossEntity.x, bossEntity.y, player.x, player.y);
+
+    if (pathToPlayer && pathToPlayer.length > 1) {
+      const nextX = pathToPlayer[1].x;
+      const nextY = pathToPlayer[1].y;
+
+      // FRAQUEZA DO CHEFÃO: Se tentar pisar no RASTRO DOURADO do jogador, FICA ATORDOADO!
+      const hitsTrail = activePath.some(pt => pt.x === nextX && pt.y === nextY);
+      if (hitsTrail) {
+        bossEntity.stunTimer = 210; // ~3.5 segundos atordoado!
+        spawnExplosion(bossEntity.x, bossEntity.y, '#38bdf8', 16);
+        playTone(320, 0.25, 'sawtooth');
+        haptic(40);
+        return;
+      }
+
+      bossEntity.x = nextX;
+      bossEntity.y = nextY;
+    }
+
+    // Se colidir com você acordado: Game Over
+    if (bossEntity.x === player.x && bossEntity.y === player.y && bossEntity.shielded) {
+      onPlayerEliminated('O Chefão Nêmesis esmagou seu marcador!');
+    }
+  }
+}
+
+/* ATUALIZAÇÃO DO MODO COLAPSO */
+function updateCollapseTick() {
+  // A névoa só começa a descer depois do primeiro movimento do jogador
+  if (!collapseStarted) {
+    if (activePath.length > 1) collapseStarted = true;
+    else return;
+  }
+  collapseY += collapseSpeed;
+  if (player.y <= collapseY) {
+    onPlayerEliminated('Você foi consumido pela névoa tóxica!');
+  }
+}
+
+function onPlayerEliminated(reason = 'Você foi interceptado!') {
+  playTone(90, 0.35, 'sawtooth');
+  haptic([80, 50, 100]);
+
+  const overlay = document.getElementById('dangerOverlay');
+  overlay.classList.add('flash');
+  setTimeout(() => overlay.classList.remove('flash'), 250);
+
+  // Restaura drones, chefe, chave e células ao estado inicial (retry justo)
+  restoreSnapshot();
+
+  // Modo Colapso: a névoa recua um pouco em vez de matar o jogador de novo na entrada
+  // A névoa recua e volta a esperar o primeiro movimento
+  if (activeGameMode === 'collapse') {
+    collapseY = Math.max(-2, collapseY - 3);
+    collapseStarted = false;
+  }
+  portalMoves = 0;
+
+  player = { x: maze.entrance, y: 0 };
+  lastFacing = 'down';
+  activePath = [{ x: player.x, y: player.y }];
+  deadSegments = [];
+  historyStack = [];
+  moveCount += 5;
+  document.getElementById('hudMoves').textContent = moveCount;
+  showToast(`✖ ${reason} (+5 passos)`);
+}
+
+/* ============================================================
+   6. MOVIMENTAÇÃO DO JOGADOR, PORTAIS & RETORNO VERMELHO
+   ============================================================ */
+const DIR_DATA = {
+  up:    { dx: 0,  dy: -1, wall: 0 },
+  right: { dx: 1,  dy: 0,  wall: 1 },
+  down:  { dx: 0,  dy: 1,  wall: 2 },
+  left:  { dx: -1, dy: 0,  wall: 3 }
+};
+
+function move(dir) {
+  if (finished || !maze) return;
+  let d = DIR_DATA[dir];
+  if (!d) return;
+
+  lastFacing = dir;
+  const { cols, rows, exit, grid } = maze;
+
+  // BATEU NA PAREDE: VIBRAÇÃO FÍSICA E TREMOR NA TELA (REPETE SEMPRE)
+  if (grid[player.y][player.x].walls[d.wall]) {
+    playTone(130, 0.08, 'sawtooth');
+    haptic(25); // VIBRAÇÃO FÍSICA NO CELULAR
+    shake.x = d.dx * 4;
+    shake.y = d.dy * 4;
+    draw();
+    setTimeout(() => {
+      shake.x = 0;
+      shake.y = 0;
+      draw();
+    }, 70);
+    return;
+  }
+
+  historyStack.push({
+    player: { x: player.x, y: player.y },
+    activePath: activePath.map(p => ({ ...p })),
+    deadSegments: deadSegments.map(s => ({ ...s })),
+    facing: lastFacing,
+    keyCollected: keyCollected,
+    coresCollected: coresCollected
+  });
+
+  if (!started) {
+    started = true;
+    startTime = Date.now();
+    pausedTotal = 0;
+    timerInterval = setInterval(updateTimerDisplay, 250);
+  }
+
+  let reachedExit = false;
+
+  while (true) {
+    if (grid[player.y][player.x].walls[d.wall]) break;
+
+    const nx = player.x + d.dx;
+    const ny = player.y + d.dy;
+
+    if (nx < 0 || nx >= cols || ny < 0 || ny >= rows) break;
+
+    // Laser no modo Sentinela
+    if (activeGameMode === 'sentinel') {
+      const hitLaser = shiftingGates.some(g => !g.open && g.x === nx && g.y === ny);
+      if (hitLaser) {
+        onPlayerEliminated('Barreira laser ativa!');
+        break;
+      }
+    }
+
+    // BACKTRACKING VERMELHO AO RETORNAR PELO MESMO CAMINHO
+    if (activePath.length >= 2 &&
+        activePath[activePath.length - 2].x === nx &&
+        activePath[activePath.length - 2].y === ny) {
+
+      const abandoned = activePath.pop();
+      deadSegments.push({
+        x1: abandoned.x, y1: abandoned.y,
+        x2: nx, y2: ny
+      });
+    } else {
+      activePath.push({ x: nx, y: ny });
+    }
+
+    player.x = nx;
+    player.y = ny;
+
+    // 1. Chave Blackout
+    if (activeGameMode === 'blackout' && keyItem && !keyCollected) {
+      if (player.x === keyItem.x && player.y === keyItem.y) {
+        keyCollected = true;
+        playTone(950, 0.2, 'sine');
+        document.getElementById('hudSpecialStatus').textContent = '1/1';
+        document.getElementById('hudSpecialStatus').style.color = '#10b981';
+      }
+    }
+
+    // 2. Célula no Modo Chefão (Atordoa o Boss e quebra escudo)
+    if (activeGameMode === 'boss' && bossEntity && bossEntity.shielded) {
+      bossCores.forEach(core => {
+        if (!core.collected && core.x === player.x && core.y === player.y) {
+          core.collected = true;
+          coresCollected++;
+          bossEntity.stunTimer = 240; // Atordoa o Boss automaticamente!
+          playTone(840, 0.15, 'sine');
+          document.getElementById('hudSpecialStatus').textContent = `${coresCollected}/3`;
+
+          if (coresCollected >= 3) {
+            bossEntity.shielded = false;
+            bossEntity.hp = 0;
+            spawnExplosion(bossEntity.x, bossEntity.y, '#38bdf8', 35);
+            playExplosionTone();
+            document.getElementById('hudSpecialStatus').textContent = 'DESTRUÍDO!';
+            document.getElementById('hudSpecialStatus').style.color = '#10b981';
+          }
+        }
+      });
+    }
+
+    // 3. Portais Quânticos Estratégicos
+    if (activeGameMode === 'portal') {
+      let teleported = false; // um portal por movimento: evita teleporte em cadeia involuntário
+      portals.forEach(p => {
+        if (teleported) return;
+        let dest = null;
+        if (player.x === p.x1 && player.y === p.y1) dest = { x: p.x2, y: p.y2 };
+        else if (player.x === p.x2 && player.y === p.y2) dest = { x: p.x1, y: p.y1 };
+        if (!dest) return;
+        // Portal direcional: só funciona se a entrada for no sentido definido
+        if (p.dir && (p.dir.dx !== d.dx || p.dir.dy !== d.dy)) return;
+
+        teleported = true;
+        spawnExplosion(player.x, player.y, p.color, 16); // some na entrada
+        player.x = dest.x; player.y = dest.y;
+        spawnExplosion(dest.x, dest.y, p.color, 16);     // aparece na saída
+        activePath.push({ x: dest.x, y: dest.y });
+        playTone(650, 0.1, 'triangle');
+
+        // Portal de gravidade: a saída força o sentido do movimento seguinte
+        if (p.type === 'gravity' && p.out) {
+          d = {
+            dx: p.out.dx, dy: p.out.dy,
+            wall: p.out.dx === 1 ? 1 : p.out.dx === -1 ? 3 : p.out.dy === 1 ? 2 : 0
+          };
+        }
+      });
+    }
+
+    // Interruptor: pisar nele abre a passagem secreta (uma vez)
+    if (activeGameMode === 'portal' && secretPassage && !secretPassage.on &&
+        player.x === secretPassage.sx && player.y === secretPassage.sy) {
+      secretPassage.on = true;
+      setPassage(maze, secretPassage, true);
+      spawnExplosion(player.x, player.y, '#22c55e', 18);
+      playTone(880, 0.2, 'sine');
+      showToast('🔓 Passagem secreta aberta!');
+    }
+
+    if (activeGameMode === 'portal') portalTick();
+
+    // Condição de Saída
+    if (player.x === exit && player.y === rows - 1) {
+      if (activeGameMode === 'blackout' && !keyCollected) {
+        playTone(180, 0.15, 'sawtooth');
+      } else if (activeGameMode === 'boss' && bossEntity && bossEntity.hp > 0) {
+        playTone(180, 0.15, 'sawtooth');
+      } else {
+        reachedExit = true;
+        break;
+      }
+    }
+
+    const cur = grid[player.y][player.x];
+    const isVert = (dir === 'up' || dir === 'down');
+    const hasSide = isVert ? (!cur.walls[1] || !cur.walls[3]) : (!cur.walls[0] || !cur.walls[2]);
+
+    if (hasSide) break;
+  }
+
+  moveCount++;
+  document.getElementById('hudMoves').textContent = moveCount;
+  playTone(reachedExit ? 880 : 380, 0.05, 'triangle');
+
+  draw();
+
+  if (reachedExit) onWin();
+}
+
+// DESFAZER
+function undo() {
+  if (!historyStack.length || finished) return;
+
+  const prev = historyStack.pop();
+  player.x = prev.player.x;
+  player.y = prev.player.y;
+  activePath = prev.activePath;
+  deadSegments = prev.deadSegments;
+  lastFacing = prev.facing || 'down';
+  keyCollected = prev.keyCollected;
+  coresCollected = prev.coresCollected;
+
+  if (activeGameMode === 'blackout') {
+    document.getElementById('hudSpecialStatus').textContent = keyCollected ? '1/1' : '0/1';
+    document.getElementById('hudSpecialStatus').style.color = keyCollected ? '#10b981' : '#ef4444';
+  } else if (activeGameMode === 'boss') {
+    document.getElementById('hudSpecialStatus').textContent = `${coresCollected}/3`;
+  }
+
+  moveCount = Math.max(0, moveCount - 1);
+  document.getElementById('hudMoves').textContent = moveCount;
+
+  playTone(240, 0.06);
+  haptic(15);
+  draw();
+}
+
+// DICA TÁTICA
+/* Toque curto na Dica: mostra os próximos 5 passos por 2,2 s (como antes) */
+let fullRouteOn = false;
+let hintHoldFired = false;
+
+function provideHint() {
+  if (finished || !maze) return;
+  let targetX = maze.exit;
+  let targetY = maze.rows - 1;
+
+  if (activeGameMode === 'blackout' && !keyCollected && keyItem) {
+    targetX = keyItem.x; targetY = keyItem.y;
+  } else if (activeGameMode === 'boss' && coresCollected < 3) {
+    const nextCore = bossCores.find(c => !c.collected);
+    if (nextCore) { targetX = nextCore.x; targetY = nextCore.y; }
+  }
+
+  const solution = solveOptimalPath(maze, player.x, player.y, targetX, targetY);
+  if (solution.length > 1) {
+    hintPath = solution.slice(0, 5);
+    draw();
+    clearTimeout(hintTimeout);
+    hintTimeout = setTimeout(() => {
+      if (!fullRouteOn) { hintPath = []; draw(); }
+    }, 2200);
+  }
+}
+
+/* Segurar a Dica (2 s): mostra o trajeto inteiro até o alvo e mantém até tocar de novo.
+   No modo Dobra Quântica, o alvo é o portal mais próximo. */
+function showFullRoute() {
+  if (finished || !maze) return;
+  let targets = [];
+  if (activeGameMode === 'portal') {
+    portals.forEach(p => {
+      targets.push({ x: p.x1, y: p.y1 });
+      targets.push({ x: p.x2, y: p.y2 });
+    });
+  } else {
+    let tx = maze.exit, ty = maze.rows - 1;
+    if (activeGameMode === 'blackout' && !keyCollected && keyItem) {
+      tx = keyItem.x; ty = keyItem.y;
+    } else if (activeGameMode === 'boss' && coresCollected < 3) {
+      const nextCore = bossCores.find(c => !c.collected);
+      if (nextCore) { tx = nextCore.x; ty = nextCore.y; }
+    }
+    targets.push({ x: tx, y: ty });
+  }
+
+  let best = null;
+  targets.forEach(t => {
+    const p = solveOptimalPath(maze, player.x, player.y, t.x, t.y);
+    if (p.length > 1 && (!best || p.length < best.length)) best = p;
+  });
+
+  if (best) {
+    clearTimeout(hintTimeout);
+    hintPath = best;
+    fullRouteOn = true;
+    draw();
+  }
+}
+
+function hideFullRoute() {
+  fullRouteOn = false;
+  hintPath = [];
+  draw();
+}
+
+let hintHoldTimer = null;
+function startHintHold(e) {
+  if (e) e.preventDefault();
+  hintHoldFired = false;
+  clearTimeout(hintHoldTimer);
+  hintHoldTimer = setTimeout(() => {
+    hintHoldFired = true;
+    showFullRoute();
+  }, 2000);
+}
+
+/* Soltar o botão: se foi toque curto, age como clique (ou fecha a rota inteira) */
+function endHintPress() {
+  clearTimeout(hintHoldTimer);
+  hintHoldTimer = null;
+  if (hintHoldFired) return;
+  if (fullRouteOn) hideFullRoute();
+  else provideHint();
+}
+
+/* Dedo saiu do botão ou foi cancelado: só cancela a espera de 2 s */
+function cancelHintHold() {
+  clearTimeout(hintHoldTimer);
+  hintHoldTimer = null;
+}
+
+/* ============================================================
+   7. CONTROLE DE TEMPO & VITÓRIA
+   ============================================================ */
+function updateTimerDisplay() {
+  if (!started || finished) return;
+  const now = gamePaused ? pauseStartedAt : Date.now(); // com o menu aberto, o tempo congela
+  const elapsed = Math.floor((now - startTime - pausedTotal) / 1000);
+  const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
+  const s = String(elapsed % 60).padStart(2, '0');
+  document.getElementById('hudTimer').textContent = `${m}:${s}`;
+
+  updateStarsDisplay();
+}
+
+/* Estrelas relativas à rota ótima do próprio mapa (justo em qualquer tamanho) */
+function updateStarsDisplay() {
+  const limit3 = Math.ceil(optimalPresses * 1.3);
+  const limit2 = Math.ceil(optimalPresses * 2);
+  const starEl = document.getElementById('hudStars');
+  if (moveCount <= limit3) starEl.textContent = '★★★';
+  else if (moveCount <= limit2) starEl.textContent = '★★☆';
+  else starEl.textContent = '★☆☆';
+}
+
+function onWin() {
+  finished = true;
+  clearInterval(timerInterval);
+  playTone(523, 0.15);
+  setTimeout(() => playTone(659, 0.15), 120);
+  setTimeout(() => playTone(784, 0.25), 240);
+  haptic([40, 60, 40, 80]);
+
+  updateStarsDisplay();
+  document.getElementById('vStars').textContent = document.getElementById('hudStars').textContent;
+  document.getElementById('vTime').textContent = document.getElementById('hudTimer').textContent;
+  document.getElementById('vMoves').textContent = moveCount;
+
+  const subtitles = {
+    normal: 'Protocolo Padrão Concluído.',
+    sentinel: 'Drones Burlados & Destruídos!',
+    blackout: 'Chave Recuperada da Escuridão!',
+    boss: 'Chefão Nêmesis Aniquilado!',
+    collapse: 'Você Escapou da Névoa a Tempo!',
+    portal: 'Dobra Espacial Dominada com Sucesso!'
+  };
+  document.getElementById('vSubtitle').textContent = subtitles[activeGameMode] || 'Missão Finalizada.';
+  document.getElementById('victoryModal').classList.add('active');
+}
+
+/* ============================================================
+   8. GESTÃO DE MODOS & MAPAS
+   ============================================================ */
+/* Caminho válido no Colapso: desce quase sempre.
+   - Pode subir, mas só depois de já ter descido pelo menos 5 linhas;
+   - nunca sobe nos primeiros 60% do caminho;
+   - sobe no máximo 1 linha abaixo do ponto mais fundo alcançado. */
+function isCollapsePathOk(path) {
+  if (!path || path.length < 2) return false;
+  const len = path.length;
+  let maxY = 0;
+  for (let i = 1; i < len; i++) {
+    const y = path[i].y;
+    if (y > maxY) maxY = y;
+    if (y < path[i - 1].y) {         // passo para cima
+      if (i < len * 0.6) return false;
+      if (maxY < 5) return false;
+      if (maxY - y > 1) return false;
+    }
+  }
+  return true;
+}
+
+/* Dificuldade extra no Colapso: a partir do mapa 08, abre paredes internas para criar atalhos
+   e becos confusos. A proporção sobe aos poucos (1,5% por mapa, até 15%). */
+function openMazeWalls(md, idx, seed) {
+  if (idx < 7) return; // idx 7 = mapa 08
+  const frac = Math.min(0.15, 0.015 * (idx - 6));
+  const rnd = createPRNG(seed + 101);
+  const { cols, rows, grid } = md;
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < cols; x++) {
+      if (x + 1 < cols && rnd() < frac) {
+        grid[y][x].walls[1] = false;
+        grid[y][x + 1].walls[3] = false;
+      }
+      if (y + 1 < rows && rnd() < frac) {
+        grid[y][x].walls[2] = false;
+        grid[y + 1][x].walls[0] = false;
+      }
+    }
+  }
+}
+
+/* Quantos passos para cima o caminho tem (usado para escolher o menos ruim) */
+function countUpSteps(path) {
+  let up = 0;
+  for (let i = 1; i < path.length; i++) {
+    if (path[i].y < path[i - 1].y) up++;
+  }
+  return up;
+}
+
+function loadLevel(idx) {
+  currentMapIdx = idx;
+  fullRouteOn = false;
+  hintPath = [];
+  const cfg = MAP_CONFIGS[idx];
+  // Infinito (seed null) recebe uma semente aleatória a cada geração
+  const base = cfg.seed ?? Math.floor(Math.random() * 1e9);
+  let seed = base;
+  // Colapso: a névoa desce do topo, então a solução precisa descer.
+  // Procura uma variação do mapa em que o caminho seja válido (ver isCollapsePathOk).
+  if (activeGameMode === 'collapse') {
+    let found = null, bestSeed = base, bestUp = Infinity;
+    for (let k = 0; k < 600; k++) {
+      const s = base + k * 7919;
+      const cand = buildMaze(cfg.cols, cfg.rows, s);
+      openMazeWalls(cand, idx, s);
+      const path = solveOptimalPath(cand);
+      if (isCollapsePathOk(path)) { found = s; break; }
+      const up = countUpSteps(path);
+      if (up < bestUp) { bestUp = up; bestSeed = s; }
+    }
+    // Se nenhum mapa cumprir a regra, usa o que sobe menos
+    seed = found ?? bestSeed;
+  }
+  maze = buildMaze(cfg.cols, cfg.rows, seed);
+  if (activeGameMode === 'collapse') openMazeWalls(maze, idx, seed);
+
+  player = { x: maze.entrance, y: 0 };
+  lastFacing = 'down';
+  shake = { x: 0, y: 0 };
+  activePath = [{ x: player.x, y: player.y }];
+  deadSegments = [];
+  historyStack = [];
+
+  setupModeEntities(maze, idx);
+  takeSnapshot();
+  optimalPresses = countOptimalPresses(solveOptimalPath(maze));
+
+  moveCount = 0;
+  started = false;
+  finished = false;
+  clearInterval(timerInterval);
+
+  document.getElementById('hudTimer').textContent = '00:00';
+  document.getElementById('hudMoves').textContent = '0';
+  document.getElementById('hudStars').textContent = '★★★';
+  document.getElementById('hudMapTitle').textContent = `MAPA ${cfg.title}`;
+  document.getElementById('hudModeTag').textContent = activeGameMode.toUpperCase();
+
+  const specialHUD = document.getElementById('hudSpecialItem');
+  const specialIcon = document.getElementById('hudSpecialIcon');
+  const specialStatus = document.getElementById('hudSpecialStatus');
+
+  if (activeGameMode === 'blackout') {
+    specialHUD.style.display = 'flex';
+    specialIcon.textContent = '🔑';
+    specialStatus.textContent = '0/1';
+    specialStatus.style.color = '#ef4444';
+  } else if (activeGameMode === 'boss') {
+    specialHUD.style.display = 'flex';
+    specialIcon.textContent = '⚡';
+    specialStatus.textContent = '0/3';
+    specialStatus.style.color = '#38bdf8';
+  } else {
+    specialHUD.style.display = 'none';
+  }
+
+  document.getElementById('victoryModal').classList.remove('active');
+  updateMenuModeChecks();
+  resizeCanvas();
+}
+
+window.selectGameMode = function(mode) {
+  activeGameMode = mode;
+  document.querySelectorAll('.mode-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.mode === mode);
+  });
+
+  const descMap = {
+    normal: '<strong>MODO NORMAL:</strong> Raciocínio tático puro. Trace a rota ideal para a saída com menor número de passos.',
+    sentinel: '<strong>MODO SENTINELA:</strong> Drones patrulham uma área. Se virem você no mesmo beco, perseguem. Seu rastro vermelho é parede para eles. Drones passam uns pelos outros. Se o drone alcançar você, é eliminado. Minas alternam entre ativa e apagada em ritmo fixo: passe quando estiverem apagadas. Drone que bate 22 vezes no rastro volta pelo caminho que fez.',
+    blackout: '<strong>MODO BLACKOUT:</strong> Escuridão com lanterna tática. Encontre a CHAVE antes de correr para a saída!',
+    boss: '<strong>MODO CHEFÃO:</strong> Após o rugido, o chefão destrói 80% das paredes e corre em linha reta atrás de você. Seu rastro amarelo o atordoa por 1 s. Faça-o bater no seu rastro VERMELHO 5 vezes para vencer. Segure o dedo para continuar andando. Se ele chegar na sua cabeça, você perde.',
+    collapse: '<strong>MODO COLAPSO:</strong> Névoa tóxica com tempo de carência calibrado. Avance sem hesitar nas curvas!',
+    portal: '<strong>MODO DOBRA QUÂNTICA:</strong> Quatro tipos de portal. <b>Ciano</b>: normal. <b>Roxo</b>: só entra no sentido da seta. <b>Dourado</b>: ao sair, você segue na direção da seta. <b>Laranja</b>: a saída muda de lugar a cada 6 passos.'
+  };
+  document.getElementById('modeExplanationText').innerHTML = descMap[mode];
+  document.getElementById('levelListTitle').textContent = `MAPAS: MODO ${mode.toUpperCase()}`;
+  renderHomeMapButtons();
+};
+
+window.switchModeAndReload = function(mode) {
+  selectGameMode(mode);
+  toggleDrawer(false);
+  loadLevel(currentMapIdx);
+};
+
+function updateMenuModeChecks() {
+  const modes = ['normal', 'sentinel', 'blackout', 'boss', 'collapse', 'portal'];
+  modes.forEach(m => {
+    const el = document.getElementById(`mCheck${m.charAt(0).toUpperCase() + m.slice(1)}`);
+    if (el) el.textContent = activeGameMode === m ? '✓' : '';
+  });
+}
+
+function renderHomeMapButtons() {
+  const container = document.getElementById('homeMapContainer');
+  container.innerHTML = '';
+  MAP_CONFIGS.forEach((cfg, idx) => {
+    const btn = document.createElement('div');
+    btn.className = `map-btn ${idx === currentMapIdx ? 'selected' : ''}`;
+    btn.innerHTML = `<span class="m-title">${cfg.title}</span><span class="m-dim">${cfg.cols}x${cfg.rows}</span>`;
+    btn.onclick = () => {
+      document.querySelectorAll('.map-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      currentMapIdx = idx;
+    };
+    container.appendChild(btn);
+  });
+}
+
+function showScreen(name) {
+  document.getElementById('homeLayer').classList.toggle('active', name === 'home');
+  document.getElementById('gameLayer').classList.toggle('active', name === 'game');
+  if (name === 'game') resizeCanvas();
+}
+
+/* ============================================================
+   9. MENU HAMBÚRGUER & PREFERÊNCIAS
+   ============================================================ */
+const menuBackdrop = document.getElementById('menuBackdrop');
+
+/* Menu aberto = jogo pausado (tempo, sequência do Blackout e loop param) */
+let gamePaused = false;
+let pauseStartedAt = 0;
+let pausedTotal = 0;
+
+function toggleDrawer(open) {
+  menuBackdrop.classList.toggle('active', open);
+  if (open && !gamePaused) {
+    gamePaused = true;
+    pauseStartedAt = Date.now();
+    stopHoldMove();
+  } else if (!open && gamePaused) {
+    gamePaused = false;
+    const pausedFor = Date.now() - pauseStartedAt;
+    pausedTotal += pausedFor;
+    if (activeGameMode === 'blackout') blackoutStart += pausedFor; // a sequência de luz também para
+    if (activeGameMode === 'boss') bossIntroStart += pausedFor;    // e a do chefão
+  }
+}
+
+document.getElementById('btnOpenMenu').addEventListener('click', () => toggleDrawer(true));
+document.getElementById('btnCloseMenu').addEventListener('click', () => toggleDrawer(false));
+menuBackdrop.addEventListener('click', (e) => {
+  if (e.target === menuBackdrop) toggleDrawer(false);
+});
+
+document.getElementById('btnToggleDpad').addEventListener('click', () => {
+  showDpad = !showDpad;
+  document.getElementById('floatingDpad').classList.toggle('active', showDpad);
+  const lbl = document.getElementById('lblDpadStatus');
+  lbl.textContent = showDpad ? 'Ativado' : 'Desativado';
+  lbl.style.color = showDpad ? 'var(--yellow)' : 'var(--text-muted)';
+});
+
+document.getElementById('btnToggleTheme').addEventListener('click', () => {
+  isDarkTheme = !isDarkTheme;
+  document.body.className = isDarkTheme ? 'theme-dark' : 'theme-light';
+  document.getElementById('lblThemeStatus').textContent = isDarkTheme ? '🌙 Escuro' : '☀️ Claro';
+  draw();
+});
+
+document.getElementById('btnToggleAudio').addEventListener('click', () => {
+  soundEnabled = !soundEnabled;
+  document.getElementById('lblAudioStatus').textContent = soundEnabled ? 'Ativado' : 'Silencioso';
+});
+
+document.getElementById('btnRestartLevel').addEventListener('click', () => {
+  toggleDrawer(false);
+  loadLevel(currentMapIdx);
+});
+
+document.getElementById('btnNextRandom').addEventListener('click', () => {
+  toggleDrawer(false);
+  loadLevel(20);
+});
+
+document.getElementById('btnGoHome').addEventListener('click', () => {
+  toggleDrawer(false);
+  clearInterval(timerInterval);
+  showScreen('home');
+});
+
+/* ============================================================
+   10. GESTOS TOUCH (SWIPE), D-PAD E TECLADO
+   ============================================================ */
+let touchStartX = 0;
+let touchStartY = 0;
+
+window.addEventListener('touchstart', (e) => {
+  if (e.target.closest('button')) return;
+  const t = e.touches[0];
+  touchStartX = t.clientX;
+  touchStartY = t.clientY;
+}, { passive: true });
+
+/* No chefão, o movimento segue enquanto o dedo estiver na tela */
+window.addEventListener('touchmove', (e) => {
+  if (activeGameMode !== 'boss' || e.target.closest('button')) return;
+  if (!document.getElementById('gameLayer').classList.contains('active')) return;
+  const t = e.touches[0];
+  const dx = t.clientX - touchStartX;
+  const dy = t.clientY - touchStartY;
+  if (Math.max(Math.abs(dx), Math.abs(dy)) <= 20) return;
+  const dir = Math.abs(dx) > Math.abs(dy)
+    ? (dx > 0 ? 'right' : 'left')
+    : (dy > 0 ? 'down' : 'up');
+  startHoldMove(dir);
+}, { passive: true });
+
+window.addEventListener('touchend', (e) => {
+  if (e.target.closest('button')) return;
+  if (!document.getElementById('gameLayer').classList.contains('active')) return;
+  if (activeGameMode === 'boss') { stopHoldMove(); return; }
+
+  const t = e.changedTouches[0];
+  const dx = t.clientX - touchStartX;
+  const dy = t.clientY - touchStartY;
+  const absX = Math.abs(dx);
+  const absY = Math.abs(dy);
+
+  if (Math.max(absX, absY) > 20) {
+    if (absX > absY) {
+      move(dx > 0 ? 'right' : 'left');
+    } else {
+      move(dy > 0 ? 'down' : 'up');
+    }
+  }
+}, { passive: true });
+
+document.querySelectorAll('.dbtn').forEach(btn => {
+  const dir = btn.dataset.dir;
+  const handlePress = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    btn.classList.add('pressed');
+    move(dir);
+  };
+  btn.addEventListener('touchstart', handlePress, { passive: false });
+  btn.addEventListener('touchend', () => btn.classList.remove('pressed'), { passive: true });
+  btn.addEventListener('mousedown', handlePress);
+  window.addEventListener('mouseup', () => btn.classList.remove('pressed'));
+});
+
+window.addEventListener('keydown', (e) => {
+  const k = e.key.toLowerCase();
+  if (['arrowup', 'w'].includes(k)) { e.preventDefault(); move('up'); }
+  else if (['arrowdown', 's'].includes(k)) { e.preventDefault(); move('down'); }
+  else if (['arrowleft', 'a'].includes(k)) { e.preventDefault(); move('left'); }
+  else if (['arrowright', 'd'].includes(k)) { e.preventDefault(); move('right'); }
+  else if (['backspace', 'z', 'u'].includes(k)) { e.preventDefault(); undo(); }
+  else if (k === 'r') { e.preventDefault(); loadLevel(currentMapIdx); }
+  else if (k === 'h') { e.preventDefault(); provideHint(); }
+});
+
+document.getElementById('btnStartGame').addEventListener('click', () => {
+  loadLevel(currentMapIdx);
+  showScreen('game');
+});
+
+document.getElementById('btnUndo').addEventListener('click', undo);
+const btnHint = document.getElementById('btnHint');
+btnHint.addEventListener('pointerdown', startHintHold);
+btnHint.addEventListener('pointerup', endHintPress);
+btnHint.addEventListener('pointerleave', cancelHintHold);
+btnHint.addEventListener('pointercancel', cancelHintHold);
+btnHint.addEventListener('contextmenu', e => e.preventDefault());
+
+document.getElementById('btnNextMap').addEventListener('click', () => {
+  currentMapIdx = (currentMapIdx + 1) % MAP_CONFIGS.length;
+  renderHomeMapButtons();
+  loadLevel(currentMapIdx);
+});
+
+window.addEventListener('resize', resizeCanvas);
+
+// INICIALIZAÇÃO
+renderHomeMapButtons();
+loadLevel(0);
+showScreen('home');
+gameTickLoop();
+
+})();
+</script>
+</body>
+</html>
